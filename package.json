@@ -1,0 +1,23 @@
+{
+  "name": "@adrian3/dropboard-core",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "dependencies": {
+    "@hello-pangea/dnd": "^18.0.1",
+    "dompurify": "^3.4.5",
+    "lucide-react": "^1.16.0",
+    "marked": "^18.0.4"
+  },
+  "files": [
+    "src",
+    "README.md"
+  ]
+}

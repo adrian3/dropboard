@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "board": {
+    "id": "board-main",
+    "name": "Work Dashboard",
+    "createdAt": "2026-05-22T00:00:00Z",
+    "updatedAt": "2026-05-22T00:00:00Z"
+  },
+  "columns": [
+    { "id": "col-inbox", "title": "Inbox", "order": 100 },
+    { "id": "col-week", "title": "This Week", "order": 200 },
+    { "id": "col-progress", "title": "In Progress", "order": 300 },
+    { "id": "col-blocked", "title": "Blocked", "order": 400 },
+    { "id": "col-done", "title": "Done", "order": 500 }
+  ],
+  "cards": [],
+  "settings": {
+    "archiveDoneByDefault": false,
+    "labels": []
+  }
+}
