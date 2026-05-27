@@ -2,3 +2,5 @@
 node_modules
 standalone/dist
 standalone/node_modules
+standalone/.dropboard-server.log
+standalone/.dropboard-server.pid

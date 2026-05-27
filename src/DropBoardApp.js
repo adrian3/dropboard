@@ -60,7 +60,7 @@ function ensureShape(data) {
     : [];
   return {
     version: 1,
-    board: data?.board || { id: "board-main", name: "Board", createdAt: todayIso(), updatedAt: todayIso() },
+    board: data?.board || { id: "board-main", name: "Work Dashboard", createdAt: todayIso(), updatedAt: todayIso() },
     columns,
     cards,
     settings: data?.settings || {}
@@ -123,7 +123,7 @@ export default function DropBoardApp({
   });
 
   const [settingsDraft, setSettingsDraft] = useState({
-    boardName: "Board",
+    boardName: "Work Dashboard",
     dataSourcePath: "",
     columns: DEFAULT_COLUMNS.map((c) => ({ ...c }))
   });
@@ -262,7 +262,7 @@ export default function DropBoardApp({
     setPathValidationMsg("");
     setPathValidationKind("info");
     setSettingsDraft({
-      boardName: doc.board?.name || "Board",
+      boardName: doc.board?.name || "Work Dashboard",
       dataSourcePath: configPath || "",
       columns: doc.columns.map((c) => ({ ...c }))
     });
@@ -418,7 +418,7 @@ export default function DropBoardApp({
   }
 
   async function saveSettings() {
-    const cleanTitle = settingsDraft.boardName.trim() || "Board";
+    const cleanTitle = settingsDraft.boardName.trim() || "Work Dashboard";
     const cleanPath = settingsDraft.dataSourcePath.trim() || configPath || initialDataSourcePath;
     const pathChanged = cleanPath !== (configPath || "");
     const cleanColumns = settingsDraft.columns
@@ -492,6 +492,15 @@ export default function DropBoardApp({
     }
   }
 
+  async function useDefaultDataSource() {
+    setStoredDataSourcePath("");
+    setConfigPath("");
+    if (isSettingsOpen) {
+      setSettingsDraft((prev) => ({ ...prev, dataSourcePath: "" }));
+    }
+    await loadBoard();
+  }
+
   async function deleteBoard() {
     const first = window.confirm(
       boardMode === "linked"
@@ -523,7 +532,7 @@ export default function DropBoardApp({
       <style jsx global>{dropboardStyles}</style>
       <DragDropContext onDragEnd={onGlobalDragEnd}>
       <div className="header-row">
-        <h1 className="title">{doc.board?.name || "Board"}</h1>
+        <h1 className="title">{doc.board?.name || "Work Dashboard"}</h1>
         <div className="topbar">
           <div className="note">{status}</div>
           <button className="icon-btn" onClick={() => setShowFilters((v) => !v)} title="Filters" aria-label="Filters">
@@ -574,9 +583,10 @@ export default function DropBoardApp({
         <div className="missing-banner">
           <div className="missing-title">Data source not found.</div>
           <div className="missing-body">Current path: <code>{missingDataSource.path}</code></div>
-          <div className="missing-body">Open Settings and fix the data source path for this board.</div>
+          <div className="missing-body">Open Settings and fix the data source path, or reset to default to use `dropboard.default.json` in this folder.</div>
           <div className="missing-actions">
             <button className="save" onClick={openSettings}>Open Settings</button>
+            <button className="modal-close" onClick={useDefaultDataSource}>Use Default Path</button>
           </div>
         </div>
       )}
@@ -620,7 +630,7 @@ export default function DropBoardApp({
               <button className="modal-close" onClick={() => setIsSettingsOpen(false)}>Close</button>
             </div>
 
-            <div className="label">Board Title</div>
+            <div className="label">Dashboard Title</div>
             <input
               className="field modal-field"
               value={settingsDraft.boardName}
@@ -633,7 +643,7 @@ export default function DropBoardApp({
               value={settingsDraft.dataSourcePath}
               onChange={(e) => setSettingsDraft((prev) => ({ ...prev, dataSourcePath: e.target.value }))}
             />
-            <div className="meta">Use absolute path for shared iCloud/OneDrive JSON. Local boards can keep their generated local file path.</div>
+            <div className="meta">Blank means default local file in app folder. Use absolute path for shared iCloud/OneDrive JSON.</div>
             <div className="settings-path-actions">
               <button className="modal-close" onClick={testDataSourcePath}>Test Path</button>
             </div>

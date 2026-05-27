@@ -93,12 +93,19 @@ class DropBoardHandler(SimpleHTTPRequestHandler):
             return {"ok": False, "path": str(path), "error": "JSON root must be an object"}
         return {"ok": True, "path": str(path)}
 
+    @staticmethod
+    def _normalize_api_path(path: str) -> str:
+        if path.startswith("/api/dropboard/"):
+            return path.replace("/api/dropboard/", "/api/", 1)
+        return path
+
     def do_GET(self):
         parsed = urlparse(self.path)
-        if parsed.path == "/api/config":
+        api_path = self._normalize_api_path(parsed.path)
+        if api_path == "/api/config":
             self._send_json(HTTPStatus.OK, self._load_config())
             return
-        if parsed.path == "/api/data":
+        if api_path == "/api/data":
             path = self._resolve_data_path()
             if not path.exists():
                 self._send_json(HTTPStatus.NOT_FOUND, {"error": "Data source not found", "path": str(path)})
@@ -114,8 +121,9 @@ class DropBoardHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         parsed = urlparse(self.path)
+        api_path = self._normalize_api_path(parsed.path)
 
-        if parsed.path == "/api/config":
+        if api_path == "/api/config":
             try:
                 body = self._read_request_json()
                 value = str(body.get("dataSourcePath", "")).strip()
@@ -126,7 +134,7 @@ class DropBoardHandler(SimpleHTTPRequestHandler):
                 self._send_json(HTTPStatus.BAD_REQUEST, {"error": str(exc)})
             return
 
-        if parsed.path == "/api/validate-data-source":
+        if api_path == "/api/validate-data-source":
             try:
                 body = self._read_request_json()
                 value = str(body.get("dataSourcePath", "")).strip() or (self.headers.get("X-DropBoard-Data-Source") or "").strip()
@@ -137,7 +145,7 @@ class DropBoardHandler(SimpleHTTPRequestHandler):
                 self._send_json(HTTPStatus.BAD_REQUEST, {"error": str(exc)})
             return
 
-        if parsed.path == "/api/init":
+        if api_path == "/api/init":
             try:
                 body = self._read_request_json()
                 source = body.get("defaultData")
@@ -153,7 +161,7 @@ class DropBoardHandler(SimpleHTTPRequestHandler):
                 self._send_json(HTTPStatus.BAD_REQUEST, {"error": str(exc)})
             return
 
-        if parsed.path == "/api/data":
+        if api_path == "/api/data":
             try:
                 body = self._read_request_json()
                 data = body.get("data")

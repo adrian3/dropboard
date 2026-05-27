@@ -1,10 +1,11 @@
 import { build } from "esbuild";
-import { mkdir, readFile, writeFile, cp } from "node:fs/promises";
+import { mkdir, writeFile, cp } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
+const projectRoot = resolve(root, "..");
 const dist = resolve(root, "dist");
 
 await mkdir(dist, { recursive: true });
@@ -16,6 +17,11 @@ const result = await build({
   format: "iife",
   target: ["safari16", "chrome110"],
   write: false,
+  alias: {
+    // Keep the standalone bundle on the same React instance as the shared core.
+    react: resolve(projectRoot, "node_modules/react/index.js"),
+    "react-dom/client": resolve(projectRoot, "node_modules/react-dom/client.js")
+  },
   loader: { ".jsx": "jsx", ".js": "jsx" }
 });
 
