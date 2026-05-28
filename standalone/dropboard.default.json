@@ -4,16 +4,48 @@
     "id": "board-main",
     "name": "Work Dashboard",
     "createdAt": "2026-05-22T00:00:00Z",
-    "updatedAt": "2026-05-22T00:00:00Z"
+    "updatedAt": "2026-05-28T03:07:48.133Z"
   },
   "columns": [
-    { "id": "col-inbox", "title": "Inbox", "order": 100 },
-    { "id": "col-week", "title": "This Week", "order": 200 },
-    { "id": "col-progress", "title": "In Progress", "order": 300 },
-    { "id": "col-blocked", "title": "Blocked", "order": 400 },
-    { "id": "col-done", "title": "Done", "order": 500 }
+    {
+      "id": "col-inbox",
+      "title": "Inbox",
+      "order": 100
+    },
+    {
+      "id": "col-week",
+      "title": "This Week",
+      "order": 200
+    },
+    {
+      "id": "col-progress",
+      "title": "In Progress",
+      "order": 300
+    },
+    {
+      "id": "col-blocked",
+      "title": "Blocked",
+      "order": 400
+    },
+    {
+      "id": "col-done",
+      "title": "Done",
+      "order": 500
+    }
   ],
-  "cards": [],
+  "cards": [
+    {
+      "id": "c_dq4dqyau",
+      "title": "New task",
+      "description": "Test",
+      "externalUrl": "",
+      "color": "none",
+      "columnId": "col-inbox",
+      "order": 100,
+      "createdAt": "2026-05-28T03:06:57.255Z",
+      "updatedAt": "2026-05-28T03:07:47.655Z"
+    }
+  ],
   "settings": {
     "archiveDoneByDefault": false,
     "labels": []

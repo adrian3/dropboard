@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node scripts/build.mjs"
+    "build": "/opt/homebrew/bin/node scripts/build.mjs"
   },
   "dependencies": {
     "@adrian3/dropboard-core": "file:..",
