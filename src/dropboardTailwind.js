@@ -134,6 +134,7 @@ export const dropboardTailwindCandidates = [
   "w-full",
   "w-max",
   "w-fit",
+  "w-[360px]",
   "h-[44px]",
   "w-[44px]",
   "max-w-full",
@@ -254,8 +255,12 @@ export const dropboardTailwindCandidates = [
   "md:justify-end",
   "md:max-w-[96vw]",
   "xl:auto-cols-[240px]",
+  "xl:grid-cols-[minmax(0,1fr)_360px]",
+  "xl:items-start",
   "xl:min-h-[420px]",
-  "xl:min-w-[240px]"
+  "xl:min-w-[240px]",
+  "xl:mt-0",
+  "xl:w-[360px]"
 ];
 
 export const dropboardTailwindSource = `@import "tailwindcss";

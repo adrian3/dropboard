@@ -250,10 +250,19 @@ export default function DropBoardApp({
   const selected = useMemo(() => doc.cards.find((c) => c.id === selectedId) || null, [doc.cards, selectedId]);
   const [selectedDirty, setSelectedDirty] = useState(false);
   const suppressAutoSaveRef = useRef(false);
+  const selectedDescriptionRef = useRef(null);
 
   useEffect(() => {
     setVisibleColumnIds(doc.columns.map((c) => c.id));
   }, [doc.columns]);
+
+  useEffect(() => {
+    if (!selectedId) return;
+    const frame = window.requestAnimationFrame(() => {
+      selectedDescriptionRef.current?.focus();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [selectedId]);
 
   const cardsByColumn = useMemo(() => {
     const map = Object.fromEntries(doc.columns.map((col) => [col.id, []]));
@@ -775,144 +784,147 @@ export default function DropBoardApp({
         </div>
       )}
 
-      <div className="overflow-x-auto pt-xxs pb-sm" onClick={handleDeselectCard}>
-        <div className="grid min-w-full w-max grid-flow-col auto-cols-[290px] content-start gap-sm xl:auto-cols-[240px]">
-          {shownColumns.map((col) => {
-            const cards = filteredCardsByColumn[col.id] || [];
-            return (
-              <Droppable droppableId={col.id} key={col.id} type="CARD">
-                {(provided) => (
-                  <section className="flex h-[500px] min-w-[290px] max-w-full flex-col overflow-hidden rounded-sm border border-hairline bg-canvas-parchment px-sm pt-sm pb-0 xl:min-w-[240px]" ref={provided.innerRef} {...provided.droppableProps}>
-                    <div className="mb-sm flex items-baseline justify-between gap-sm font-caption text-caption text-ink-muted-80">
-                      <span>{col.title}</span>
-                      <span>{cards.length}</span>
-                    </div>
-                    {col.id === shownColumns[0]?.id && (
-                      <button className="mb-sm inline-flex min-h-[44px] w-fit items-center justify-center self-start rounded-sm border border-primary bg-primary px-md font-button-utility text-button-utility text-on-primary transition-colors duration-150 ease-out hover:border-primary-focus hover:bg-primary-focus focus-visible:border-primary-focus focus-visible:bg-primary-focus focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" onClick={(e) => { e.stopPropagation(); openAddModal(); }}>
-                        + Add card
-                      </button>
-                    )}
-                    <div className="min-h-0 min-w-0 grow overflow-y-auto">
-                      {cards.map((card, index) => (
-                        <Draggable draggableId={card.id} index={index} key={card.id}>
-                          {(dragProvided) => {
-                            const hasDescription = Boolean(String(card.description || "").trim());
-                            const hasExternalUrl = Boolean(asSafeExternalUrl(card.externalUrl));
-                            const titleSpacing = hasDescription || hasExternalUrl ? "mb-[4px]" : "";
-                            const cardSpacing = index === cards.length - 1 ? "" : "mb-sm";
+      <div className={selected ? "grid gap-sm xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start" : ""}>
+        <div className="overflow-x-auto pt-xxs pb-sm" onClick={handleDeselectCard}>
+          <div className="grid min-w-full w-max grid-flow-col auto-cols-[290px] content-start gap-sm xl:auto-cols-[240px]">
+            {shownColumns.map((col) => {
+              const cards = filteredCardsByColumn[col.id] || [];
+              return (
+                <Droppable droppableId={col.id} key={col.id} type="CARD">
+                  {(provided) => (
+                    <section className="flex h-[500px] min-w-[290px] max-w-full flex-col overflow-hidden rounded-sm border border-hairline bg-canvas-parchment px-sm pt-sm pb-0 xl:min-w-[240px]" ref={provided.innerRef} {...provided.droppableProps}>
+                      <div className="flex items-baseline justify-between gap-sm font-caption text-caption text-ink-muted-80">
+                        <span>{col.title}</span>
+                        <span>{cards.length}</span>
+                      </div>
+                      {col.id === shownColumns[0]?.id && (
+                        <button className="mb-sm inline-flex min-h-[44px] w-fit items-center justify-center self-start rounded-sm border border-primary bg-primary px-md font-button-utility text-button-utility text-on-primary transition-colors duration-150 ease-out hover:border-primary-focus hover:bg-primary-focus focus-visible:border-primary-focus focus-visible:bg-primary-focus focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" onClick={(e) => { e.stopPropagation(); openAddModal(); }}>
+                          + Add card
+                        </button>
+                      )}
+                      <div className="min-h-0 min-w-0 grow overflow-y-auto">
+                        {cards.map((card, index) => (
+                          <Draggable draggableId={card.id} index={index} key={card.id}>
+                            {(dragProvided) => {
+                              const hasDescription = Boolean(String(card.description || "").trim());
+                              const hasExternalUrl = Boolean(asSafeExternalUrl(card.externalUrl));
+                              const titleSpacing = hasDescription || hasExternalUrl ? "mb-[4px]" : "";
+                              const cardSpacing = index === cards.length - 1 ? "" : "mb-sm";
 
-                            return (
-                              <article
-                                className={[
-                                  cardSpacing,
-                                  "max-h-[250px] w-full min-w-0 max-w-full cursor-pointer overflow-hidden rounded-sm border p-[5px] transition-shadow duration-150 ease-out",
-                                  cardColorClass(card.color),
-                                  cardAccentClass(card.color, "hover"),
-                                  selectedId === card.id ? cardAccentClass(card.color, "active") : ""
-                                ].join(" ")}
-                                ref={dragProvided.innerRef}
-                                {...dragProvided.draggableProps}
-                                {...dragProvided.dragHandleProps}
-                                onClick={async (e) => { e.stopPropagation(); await handleSelectCard(card.id); }}
-                              >
-                                <h3 className={`font-body text-body leading-tight text-ink ${titleSpacing}`}>{card.title || "Untitled"}</h3>
-                                {hasDescription && (
-                                  <div
-                                    className="dropboard-markdown min-w-0 text-caption leading-tight text-ink"
-                                    dangerouslySetInnerHTML={{ __html: renderMarkdownInline(card.description || "") }}
-                                  />
-                                )}
-                                {hasExternalUrl && (
-                                  <a
-                                    className="mt-[4px] block max-w-full truncate font-caption-strong text-caption text-primary"
-                                    href={asSafeExternalUrl(card.externalUrl)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    title={card.externalUrl}
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    {compactUrlLabel(card.externalUrl)}
-                                  </a>
-                                )}
-                              </article>
-                            );
-                          }}
-                        </Draggable>
-                      ))}
-                      {provided.placeholder}
-                    </div>
-                  </section>
-                )}
-              </Droppable>
-            );
-          })}
-        </div>
-      </div>
-
-      {selected && (
-        <section className="mt-sm grid gap-sm rounded-sm border border-hairline bg-canvas-parchment p-md" onClick={(e) => e.stopPropagation()}>
-          <h2 className="mb-xxs font-display-md text-display-md text-ink">Card Details</h2>
-          <input
-            className="min-h-[44px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
-            placeholder="Task title"
-            value={selected.title || ""}
-            onChange={(e) => selected && setDoc((prev) => {
-              setSelectedDirty(true);
-              return { ...prev, cards: prev.cards.map((c) => c.id === selected.id ? { ...c, title: e.target.value, updatedAt: todayIso() } : c) };
+                              return (
+                                <article
+                                  className={[
+                                    cardSpacing,
+                                    "max-h-[250px] w-full min-w-0 max-w-full cursor-pointer overflow-hidden rounded-sm border p-[5px] transition-shadow duration-150 ease-out",
+                                    cardColorClass(card.color),
+                                    cardAccentClass(card.color, "hover"),
+                                    selectedId === card.id ? cardAccentClass(card.color, "active") : ""
+                                  ].join(" ")}
+                                  ref={dragProvided.innerRef}
+                                  {...dragProvided.draggableProps}
+                                  {...dragProvided.dragHandleProps}
+                                  onClick={async (e) => { e.stopPropagation(); await handleSelectCard(card.id); }}
+                                >
+                                  <h3 className={`font-body text-body leading-tight text-ink ${titleSpacing}`}>{card.title || "Untitled"}</h3>
+                                  {hasDescription && (
+                                    <div
+                                      className="dropboard-markdown min-w-0 text-caption leading-tight text-ink"
+                                      dangerouslySetInnerHTML={{ __html: renderMarkdownInline(card.description || "") }}
+                                    />
+                                  )}
+                                  {hasExternalUrl && (
+                                    <a
+                                      className="mt-[4px] block max-w-full truncate font-caption-strong text-caption text-primary"
+                                      href={asSafeExternalUrl(card.externalUrl)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      title={card.externalUrl}
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {compactUrlLabel(card.externalUrl)}
+                                    </a>
+                                  )}
+                                </article>
+                              );
+                            }}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
+                      </div>
+                    </section>
+                  )}
+                </Droppable>
+              );
             })}
-            onBlur={commitSelectedIfDirty}
-          />
-          <textarea
-            className="min-h-[144px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
-            placeholder="What needs to happen?"
-            value={selected.description || ""}
-            onChange={(e) => selected && setDoc((prev) => {
-              setSelectedDirty(true);
-              return { ...prev, cards: prev.cards.map((c) => c.id === selected.id ? { ...c, description: e.target.value, updatedAt: todayIso() } : c) };
-            })}
-            onBlur={commitSelectedIfDirty}
-          />
-          <input
-            className="min-h-[44px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
-            placeholder="Optional external link (https://...)"
-            value={selected.externalUrl || ""}
-            onChange={(e) => selected && setDoc((prev) => {
-              setSelectedDirty(true);
-              return { ...prev, cards: prev.cards.map((c) => c.id === selected.id ? { ...c, externalUrl: e.target.value, updatedAt: todayIso() } : c) };
-            })}
-            onBlur={commitSelectedIfDirty}
-          />
-          <select
-            className="min-h-[44px] w-full appearance-none rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
-            value={selected.columnId || ""}
-            onChange={(e) => moveSelectedToColumn(e.target.value)}
-          >
-            {doc.columns.map((col) => (
-              <option key={col.id} value={col.id}>{col.title}</option>
-            ))}
-          </select>
-
-          <div className="mb-xs font-caption text-caption text-ink-muted-80">Color</div>
-          <div className="flex flex-wrap gap-xs">
-            {COLORS.map((color) => (
-              <button
-                key={color}
-                className={swatchClass(color, selected?.color)}
-                onClick={() => {
-                  if (!selected) return;
-                  setSelectedDirty(true);
-                  setDoc((prev) => ({ ...prev, cards: prev.cards.map((c) => c.id === selected.id ? { ...c, color, updatedAt: todayIso() } : c) }));
-                }}
-              >
-                {color === "none" ? "None" : ""}
-              </button>
-            ))}
           </div>
-          <button className="inline-flex min-h-[44px] w-fit items-center justify-center self-start rounded-sm border border-primary bg-canvas px-md font-button-utility text-button-utility text-primary transition-colors duration-150 ease-out hover:bg-[rgba(204,51,0,0.06)] focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" onMouseDown={(e) => e.preventDefault()} onClick={deleteSelectedCard}>
-            Delete card
-          </button>
-        </section>
-      )}
+        </div>
+
+        {selected && (
+          <section className="mt-sm grid gap-sm rounded-sm border border-hairline bg-canvas-parchment p-md xl:mt-0 xl:w-[360px]" onClick={(e) => e.stopPropagation()}>
+            <h2 className="mb-xxs font-body text-body leading-tight text-ink">{selected.title || "Untitled"}</h2>
+            <input
+              className="min-h-[44px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+              placeholder="Task title"
+              value={selected.title || ""}
+              onChange={(e) => selected && setDoc((prev) => {
+                setSelectedDirty(true);
+                return { ...prev, cards: prev.cards.map((c) => c.id === selected.id ? { ...c, title: e.target.value, updatedAt: todayIso() } : c) };
+              })}
+              onBlur={commitSelectedIfDirty}
+            />
+            <textarea
+              ref={selectedDescriptionRef}
+              className="min-h-[144px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+              placeholder="What needs to happen?"
+              value={selected.description || ""}
+              onChange={(e) => selected && setDoc((prev) => {
+                setSelectedDirty(true);
+                return { ...prev, cards: prev.cards.map((c) => c.id === selected.id ? { ...c, description: e.target.value, updatedAt: todayIso() } : c) };
+              })}
+              onBlur={commitSelectedIfDirty}
+            />
+            <input
+              className="min-h-[44px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+              placeholder="Optional external link (https://...)"
+              value={selected.externalUrl || ""}
+              onChange={(e) => selected && setDoc((prev) => {
+                setSelectedDirty(true);
+                return { ...prev, cards: prev.cards.map((c) => c.id === selected.id ? { ...c, externalUrl: e.target.value, updatedAt: todayIso() } : c) };
+              })}
+              onBlur={commitSelectedIfDirty}
+            />
+            <select
+              className="min-h-[44px] w-full appearance-none rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+              value={selected.columnId || ""}
+              onChange={(e) => moveSelectedToColumn(e.target.value)}
+            >
+              {doc.columns.map((col) => (
+                <option key={col.id} value={col.id}>{col.title}</option>
+              ))}
+            </select>
+
+            <div className="mb-xs font-caption text-caption text-ink-muted-80">Color</div>
+            <div className="flex flex-wrap gap-xs">
+              {COLORS.map((color) => (
+                <button
+                  key={color}
+                  className={swatchClass(color, selected?.color)}
+                  onClick={() => {
+                    if (!selected) return;
+                    setSelectedDirty(true);
+                    setDoc((prev) => ({ ...prev, cards: prev.cards.map((c) => c.id === selected.id ? { ...c, color, updatedAt: todayIso() } : c) }));
+                  }}
+                >
+                  {color === "none" ? "None" : ""}
+                </button>
+              ))}
+            </div>
+            <button className="inline-flex min-h-[44px] w-fit items-center justify-center self-start rounded-sm border border-primary bg-canvas px-md font-button-utility text-button-utility text-primary transition-colors duration-150 ease-out hover:bg-[rgba(204,51,0,0.06)] focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" onMouseDown={(e) => e.preventDefault()} onClick={deleteSelectedCard}>
+              Delete card
+            </button>
+          </section>
+        )}
+      </div>
       </DragDropContext>
     </div>
   );
