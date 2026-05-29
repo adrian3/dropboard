@@ -80,8 +80,9 @@ function renderMarkdownInline(mdText) {
   const html = marked.parse(raw, { breaks: true, gfm: true });
   const compactHtml = html
     .replace(/<p>/g, '<p style="margin:0 0 8px;">')
-    .replace(/<ul>/g, '<ul style="margin:0 0 8px; padding-left:1.15rem;">')
-    .replace(/<ol>/g, '<ol style="margin:0 0 8px; padding-left:1.15rem;">')
+    .replace(/<ul>/g, '<ul style="margin:0 0 8px; padding-left:1.15rem; list-style:disc outside;">')
+    .replace(/<ol>/g, '<ol style="margin:0 0 8px; padding-left:1.15rem; list-style:decimal outside;">')
+    .replace(/<li>/g, '<li style="display:list-item; margin:0 0 4px;">')
     .replace(/<pre>/g, '<pre style="margin:0 0 8px;">')
     .replace(/<blockquote>/g, '<blockquote style="margin:0 0 8px;">')
     .replace(/<h1>/g, '<h1 style="margin:0 0 8px;">')
@@ -252,6 +253,7 @@ export default function DropBoardApp({
   const [selectedDirty, setSelectedDirty] = useState(false);
   const suppressAutoSaveRef = useRef(false);
   const selectedDescriptionRef = useRef(null);
+  const addTitleInputRef = useRef(null);
 
   useEffect(() => {
     setVisibleColumnIds(doc.columns.map((c) => c.id));
@@ -264,6 +266,14 @@ export default function DropBoardApp({
     });
     return () => window.cancelAnimationFrame(frame);
   }, [selectedId]);
+
+  useEffect(() => {
+    if (!isAddOpen) return;
+    const frame = window.requestAnimationFrame(() => {
+      addTitleInputRef.current?.focus();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [isAddOpen]);
 
   const cardsByColumn = useMemo(() => {
     const map = Object.fromEntries(doc.columns.map((col) => [col.id, []]));
@@ -348,6 +358,18 @@ export default function DropBoardApp({
     setSelectedId(newCard.id);
     setIsAddOpen(false);
     await persist(next, "Card saved.");
+  }
+
+  async function submitAddCard(event) {
+    event?.preventDefault?.();
+    await onAddCard();
+  }
+
+  async function handleAddCardModalKeyDown(event) {
+    if (event.key !== "Enter") return;
+    if (event.nativeEvent?.isComposing) return;
+    event.preventDefault();
+    await onAddCard();
   }
 
   function reorder(list, startIndex, endIndex) {
@@ -687,29 +709,32 @@ export default function DropBoardApp({
       {isAddOpen && (
         <div className="fixed inset-0 z-30 flex items-center justify-center bg-[rgba(29,29,31,0.18)] p-md" onClick={() => setIsAddOpen(false)}>
           <div className="max-h-[92vh] w-full max-w-[980px] overflow-auto rounded-sm border border-hairline bg-canvas p-lg" onClick={(e) => e.stopPropagation()}>
-            <div className="mb-sm flex items-start justify-between gap-sm">
-              <h3 className="font-display-md text-display-md text-ink">Add Card</h3>
-              <button className="inline-flex min-h-[44px] items-center justify-center rounded-sm border border-hairline bg-canvas-parchment px-md font-button-utility text-button-utility text-ink transition-colors duration-150 ease-out hover:border-[#333333] hover:text-[#333333] focus-visible:border-[#333333] focus-visible:text-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2" onClick={() => setIsAddOpen(false)}>Cancel</button>
-            </div>
-            <input className="mb-sm min-h-[44px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:border-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2" placeholder="Task title" value={draftCard.title} onChange={(e) => setDraftCard((prev) => ({ ...prev, title: e.target.value }))} />
-            <textarea className="mb-sm min-h-[144px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:border-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2" placeholder="What needs to happen?" value={draftCard.description} onChange={(e) => setDraftCard((prev) => ({ ...prev, description: e.target.value }))} />
-            <input className="mb-sm min-h-[44px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:border-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2" placeholder="Optional external link (https://...)" value={draftCard.externalUrl} onChange={(e) => setDraftCard((prev) => ({ ...prev, externalUrl: e.target.value }))} />
-            <select className="mb-sm min-h-[44px] w-full appearance-none rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:border-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2" value={draftCard.columnId} onChange={(e) => setDraftCard((prev) => ({ ...prev, columnId: e.target.value }))}>
-              {doc.columns.map((col) => <option key={col.id} value={col.id}>{col.title}</option>)}
-            </select>
-            <div className="mb-xs font-caption text-caption text-ink-muted-80">Color</div>
-            <div className="mb-md flex flex-wrap gap-xs">
-              {COLORS.map((color) => (
-                <button
-                  key={color}
-                  className={swatchClass(color, draftCard.color)}
-                  onClick={() => setDraftCard((prev) => ({ ...prev, color }))}
-                >
-                  {color === "none" ? "None" : ""}
-                </button>
-              ))}
-            </div>
-            <button className="inline-flex min-h-[44px] items-center justify-center rounded-sm border border-primary bg-primary px-md font-button-utility text-button-utility text-on-primary transition-colors duration-150 ease-out hover:border-[#333333] hover:bg-[#333333] focus-visible:border-[#333333] focus-visible:bg-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2" onClick={onAddCard}>Save</button>
+            <form onSubmit={submitAddCard} onKeyDown={handleAddCardModalKeyDown}>
+              <div className="mb-sm flex items-start justify-between gap-sm">
+                <h3 className="font-display-md text-display-md text-ink">Add Card</h3>
+                <button type="button" className="inline-flex min-h-[44px] items-center justify-center rounded-sm border border-hairline bg-canvas-parchment px-md font-button-utility text-button-utility text-ink transition-colors duration-150 ease-out hover:border-[#333333] hover:text-[#333333] focus-visible:border-[#333333] focus-visible:text-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2" onClick={() => setIsAddOpen(false)}>Cancel</button>
+              </div>
+              <input ref={addTitleInputRef} className="mb-sm min-h-[44px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:border-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2" placeholder="Task title" value={draftCard.title} onChange={(e) => setDraftCard((prev) => ({ ...prev, title: e.target.value }))} />
+              <textarea className="mb-sm min-h-[144px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:border-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2" placeholder="What needs to happen?" value={draftCard.description} onChange={(e) => setDraftCard((prev) => ({ ...prev, description: e.target.value }))} />
+              <input className="mb-sm min-h-[44px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:border-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2" placeholder="Optional external link (https://...)" value={draftCard.externalUrl} onChange={(e) => setDraftCard((prev) => ({ ...prev, externalUrl: e.target.value }))} />
+              <select className="mb-sm min-h-[44px] w-full appearance-none rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:border-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2" value={draftCard.columnId} onChange={(e) => setDraftCard((prev) => ({ ...prev, columnId: e.target.value }))}>
+                {doc.columns.map((col) => <option key={col.id} value={col.id}>{col.title}</option>)}
+              </select>
+              <div className="mb-xs font-caption text-caption text-ink-muted-80">Color</div>
+              <div className="mb-md flex flex-wrap gap-xs">
+                {COLORS.map((color) => (
+                  <button
+                    type="button"
+                    key={color}
+                    className={swatchClass(color, draftCard.color)}
+                    onClick={() => setDraftCard((prev) => ({ ...prev, color }))}
+                  >
+                    {color === "none" ? "None" : ""}
+                  </button>
+                ))}
+              </div>
+              <button type="submit" className="inline-flex min-h-[44px] items-center justify-center rounded-sm border border-primary bg-primary px-md font-button-utility text-button-utility text-on-primary transition-colors duration-150 ease-out hover:border-[#333333] hover:bg-[#333333] focus-visible:border-[#333333] focus-visible:bg-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2">Save</button>
+            </form>
           </div>
         </div>
       )}
