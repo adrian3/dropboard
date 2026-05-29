@@ -10,7 +10,7 @@ import {
   DropBoardSettingsIcon,
   DropBoardShowIcon
 } from "./icons";
-import { CARD_TONE_CLASSES, SWATCH_TONE_CLASSES } from "./dropboardTailwind";
+import { CARD_ACCENT_CLASSES, CARD_TONE_CLASSES, SWATCH_TONE_CLASSES } from "./dropboardTailwind";
 import { dropboardStyles } from "./dropboardStyles";
 
 const COLORS = ["none", "gold", "orange", "pink", "purple", "blue"];
@@ -77,9 +77,19 @@ function renderMarkdownInline(mdText) {
   const raw = String(mdText || "");
   if (!raw.trim()) return "";
   const html = marked.parse(raw, { breaks: true, gfm: true });
-  return DOMPurify.sanitize(html, {
+  const compactHtml = html
+    .replace(/<p>/g, '<p style="margin:0 0 8px;">')
+    .replace(/<ul>/g, '<ul style="margin:0 0 8px; padding-left:1.15rem;">')
+    .replace(/<ol>/g, '<ol style="margin:0 0 8px; padding-left:1.15rem;">')
+    .replace(/<pre>/g, '<pre style="margin:0 0 8px;">')
+    .replace(/<blockquote>/g, '<blockquote style="margin:0 0 8px;">')
+    .replace(/<h1>/g, '<h1 style="margin:0 0 8px;">')
+    .replace(/<h2>/g, '<h2 style="margin:0 0 8px;">')
+    .replace(/<h3>/g, '<h3 style="margin:0 0 8px;">')
+    .replace(/<h4>/g, '<h4 style="margin:0 0 8px;">');
+  return DOMPurify.sanitize(compactHtml, {
     USE_PROFILES: { html: true },
-    ALLOWED_ATTR: ["href", "title", "target", "rel"]
+    ALLOWED_ATTR: ["href", "title", "target", "rel", "style"]
   });
 }
 
@@ -96,6 +106,18 @@ function compactUrlLabel(rawUrl) {
   return value.replace(/^https?:\/\//i, "");
 }
 
+function normalizeDataSourcePath(rawPath) {
+  const value = String(rawPath || "").trim();
+  if (!value) return "";
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    return value.slice(1, -1).trim();
+  }
+  return value;
+}
+
 function swatchClass(color, activeColor) {
   return [
     color === "none"
@@ -108,6 +130,16 @@ function swatchClass(color, activeColor) {
 
 function cardColorClass(color) {
   return CARD_TONE_CLASSES[color] || CARD_TONE_CLASSES.none;
+}
+
+function cardAccentClass(color, state) {
+  return CARD_ACCENT_CLASSES[color]?.[state] || CARD_ACCENT_CLASSES.none[state];
+}
+
+function pathValidationClass(kind) {
+  if (kind === "ok") return "text-[#1f7a3d]";
+  if (kind === "error") return "text-[#c62828]";
+  return "text-ink-muted-48";
 }
 
 export default function DropBoardApp({
@@ -165,7 +197,7 @@ export default function DropBoardApp({
   }
 
   function withDataSourceHeader(path) {
-    const clean = (path ?? configPath ?? "").trim();
+    const clean = normalizeDataSourcePath(path ?? configPath ?? "");
     return clean ? { "X-DropBoard-Data-Source": clean } : {};
   }
 
@@ -439,7 +471,7 @@ export default function DropBoardApp({
 
   async function saveSettings() {
     const cleanTitle = settingsDraft.boardName.trim() || "Dashboard";
-    const cleanPath = settingsDraft.dataSourcePath.trim() || configPath || initialDataSourcePath;
+    const cleanPath = normalizeDataSourcePath(settingsDraft.dataSourcePath || configPath || initialDataSourcePath);
     const pathChanged = cleanPath !== (configPath || "");
     const cleanColumns = settingsDraft.columns
       .map((c, i) => ({ ...c, title: (c.title || "Column").trim() || "Column", order: (i + 1) * 100 }));
@@ -495,7 +527,7 @@ export default function DropBoardApp({
   }
 
   async function testDataSourcePath() {
-    const cleanPath = settingsDraft.dataSourcePath.trim() || configPath || initialDataSourcePath;
+    const cleanPath = normalizeDataSourcePath(settingsDraft.dataSourcePath || configPath || initialDataSourcePath);
     try {
       const validation = await api(boardApi("/api/dropboard/validate-data-source"), {
         method: "POST",
@@ -684,7 +716,7 @@ export default function DropBoardApp({
             <div className="mb-xs mt-xs">
               <button className="inline-flex min-h-[44px] items-center justify-center rounded-sm border border-hairline bg-canvas-parchment px-md font-button-utility text-button-utility text-ink transition-colors duration-150 ease-out hover:border-primary hover:text-primary focus-visible:border-primary focus-visible:text-primary focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" onClick={testDataSourcePath}>Test Path</button>
             </div>
-            {pathValidationMsg && <div className={`text-caption ${pathValidationKind === "ok" || pathValidationKind === "error" ? "text-primary" : "text-ink-muted-48"}`}>{pathValidationMsg}</div>}
+            {pathValidationMsg && <div className={`text-caption ${pathValidationClass(pathValidationKind)}`}>{pathValidationMsg}</div>}
 
             <div className="mt-sm">
               <div className="mb-xs font-caption text-caption text-ink-muted-80">Columns</div>
@@ -744,13 +776,13 @@ export default function DropBoardApp({
       )}
 
       <div className="overflow-x-auto pt-xxs pb-sm" onClick={handleDeselectCard}>
-        <div className="grid min-w-full w-max max-h-[72vh] grid-flow-col auto-cols-[290px] content-start gap-sm xl:auto-cols-[240px]">
+        <div className="grid min-w-full w-max grid-flow-col auto-cols-[290px] content-start gap-sm xl:auto-cols-[240px]">
           {shownColumns.map((col) => {
             const cards = filteredCardsByColumn[col.id] || [];
             return (
               <Droppable droppableId={col.id} key={col.id} type="CARD">
                 {(provided) => (
-                  <section className="flex min-h-[560px] min-w-[290px] max-w-full flex-col rounded-sm border border-hairline bg-canvas-parchment p-md xl:min-h-[420px] xl:min-w-[240px]" ref={provided.innerRef} {...provided.droppableProps}>
+                  <section className="flex h-[500px] min-w-[290px] max-w-full flex-col overflow-hidden rounded-sm border border-hairline bg-canvas-parchment px-sm pt-sm pb-0 xl:min-w-[240px]" ref={provided.innerRef} {...provided.droppableProps}>
                     <div className="mb-sm flex items-baseline justify-between gap-sm font-caption text-caption text-ink-muted-80">
                       <span>{col.title}</span>
                       <span>{cards.length}</span>
@@ -760,40 +792,51 @@ export default function DropBoardApp({
                         + Add card
                       </button>
                     )}
-                    <div className="min-h-[180px] min-w-0 max-h-[52vh] overflow-y-auto">
+                    <div className="min-h-0 min-w-0 grow overflow-y-auto">
                       {cards.map((card, index) => (
                         <Draggable draggableId={card.id} index={index} key={card.id}>
-                          {(dragProvided) => (
-                            <article
-                              className={[
-                                "mb-sm w-full min-w-0 max-w-full max-h-[260px] cursor-pointer overflow-auto rounded-sm border p-sm shadow-[0_0_0_rgba(0,0,0,0)] transition-shadow duration-150 ease-out hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)]",
-                                cardColorClass(card.color),
-                                selectedId === card.id ? "shadow-[0_6px_20px_rgba(0,0,0,0.10)]" : ""
-                              ].join(" ")}
-                              ref={dragProvided.innerRef}
-                              {...dragProvided.draggableProps}
-                              {...dragProvided.dragHandleProps}
-                              onClick={async (e) => { e.stopPropagation(); await handleSelectCard(card.id); }}
-                            >
-                              <h3 className="mb-xs font-tagline text-tagline text-ink">{card.title || "Untitled"}</h3>
-                              <div
-                                className="dropboard-markdown min-w-0 text-body text-ink"
-                                dangerouslySetInnerHTML={{ __html: renderMarkdownInline(card.description || "") }}
-                              />
-                              {asSafeExternalUrl(card.externalUrl) && (
-                                <a
-                                  className="mt-sm block max-w-full truncate font-caption-strong text-caption text-primary"
-                                  href={asSafeExternalUrl(card.externalUrl)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  title={card.externalUrl}
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {compactUrlLabel(card.externalUrl)}
-                                </a>
-                              )}
-                            </article>
-                          )}
+                          {(dragProvided) => {
+                            const hasDescription = Boolean(String(card.description || "").trim());
+                            const hasExternalUrl = Boolean(asSafeExternalUrl(card.externalUrl));
+                            const titleSpacing = hasDescription || hasExternalUrl ? "mb-[4px]" : "";
+                            const cardSpacing = index === cards.length - 1 ? "" : "mb-sm";
+
+                            return (
+                              <article
+                                className={[
+                                  cardSpacing,
+                                  "max-h-[250px] w-full min-w-0 max-w-full cursor-pointer overflow-hidden rounded-sm border p-[5px] transition-shadow duration-150 ease-out",
+                                  cardColorClass(card.color),
+                                  cardAccentClass(card.color, "hover"),
+                                  selectedId === card.id ? cardAccentClass(card.color, "active") : ""
+                                ].join(" ")}
+                                ref={dragProvided.innerRef}
+                                {...dragProvided.draggableProps}
+                                {...dragProvided.dragHandleProps}
+                                onClick={async (e) => { e.stopPropagation(); await handleSelectCard(card.id); }}
+                              >
+                                <h3 className={`font-body text-body leading-tight text-ink ${titleSpacing}`}>{card.title || "Untitled"}</h3>
+                                {hasDescription && (
+                                  <div
+                                    className="dropboard-markdown min-w-0 text-caption leading-tight text-ink"
+                                    dangerouslySetInnerHTML={{ __html: renderMarkdownInline(card.description || "") }}
+                                  />
+                                )}
+                                {hasExternalUrl && (
+                                  <a
+                                    className="mt-[4px] block max-w-full truncate font-caption-strong text-caption text-primary"
+                                    href={asSafeExternalUrl(card.externalUrl)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title={card.externalUrl}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {compactUrlLabel(card.externalUrl)}
+                                  </a>
+                                )}
+                              </article>
+                            );
+                          }}
                         </Draggable>
                       ))}
                       {provided.placeholder}

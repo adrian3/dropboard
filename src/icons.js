@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { Cog6ToothIcon, EyeIcon, EyeSlashIcon, FunnelIcon } from "@heroicons/react/24/outline";
 
 function withIconDefaults(Icon) {

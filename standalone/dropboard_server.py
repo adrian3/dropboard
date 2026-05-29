@@ -23,6 +23,13 @@ def write_json(path: Path, payload):
         f.write("\n")
 
 
+def normalize_data_source_value(value: str) -> str:
+    raw = str(value or "").strip()
+    if len(raw) >= 2 and ((raw[0] == raw[-1] == '"') or (raw[0] == raw[-1] == "'")):
+        return raw[1:-1].strip()
+    return raw
+
+
 class DropBoardHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, app_dir: Path, **kwargs):
         self.app_dir = app_dir
@@ -69,17 +76,17 @@ class DropBoardHandler(SimpleHTTPRequestHandler):
             return {"dataSourcePath": ""}
 
     def _resolve_data_path(self):
-        header_path = (self.headers.get("X-DropBoard-Data-Source") or "").strip()
+        header_path = normalize_data_source_value(self.headers.get("X-DropBoard-Data-Source") or "")
         if header_path:
             return Path(header_path).expanduser()
         cfg = self._load_config()
-        data_source = (cfg.get("dataSourcePath") or "").strip()
+        data_source = normalize_data_source_value(cfg.get("dataSourcePath") or "")
         if data_source:
             return Path(data_source).expanduser()
         return self.app_dir / DEFAULT_DATA_FILE_NAME
 
     def _validate_data_source(self, value: str):
-        raw = (value or "").strip()
+        raw = normalize_data_source_value(value)
         path = Path(raw).expanduser() if raw else (self.app_dir / DEFAULT_DATA_FILE_NAME)
         if not path.exists():
             return {"ok": False, "path": str(path), "error": "File not found"}
@@ -126,7 +133,7 @@ class DropBoardHandler(SimpleHTTPRequestHandler):
         if api_path == "/api/config":
             try:
                 body = self._read_request_json()
-                value = str(body.get("dataSourcePath", "")).strip()
+                value = normalize_data_source_value(body.get("dataSourcePath", ""))
                 write_json(self.config_path, {"dataSourcePath": value})
                 validation = self._validate_data_source(value)
                 self._send_json(HTTPStatus.OK, {"ok": True, "dataSourcePath": value, "validation": validation})
@@ -137,7 +144,7 @@ class DropBoardHandler(SimpleHTTPRequestHandler):
         if api_path == "/api/validate-data-source":
             try:
                 body = self._read_request_json()
-                value = str(body.get("dataSourcePath", "")).strip() or (self.headers.get("X-DropBoard-Data-Source") or "").strip()
+                value = normalize_data_source_value(body.get("dataSourcePath", "")) or normalize_data_source_value(self.headers.get("X-DropBoard-Data-Source") or "")
                 validation = self._validate_data_source(value)
                 status = HTTPStatus.OK if validation.get("ok") else HTTPStatus.BAD_REQUEST
                 self._send_json(status, validation)

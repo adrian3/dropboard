@@ -7,6 +7,33 @@ export const CARD_TONE_CLASSES = {
   blue: "border-[#3f7fdf] bg-[#e6efff]"
 };
 
+export const CARD_ACCENT_CLASSES = {
+  none: {
+    hover: "hover:shadow-[inset_0_0_0_1px_#7a7a7a]",
+    active: "shadow-[inset_0_0_0_1px_#7a7a7a]"
+  },
+  gold: {
+    hover: "hover:shadow-[inset_0_0_0_1px_#f2b81c]",
+    active: "shadow-[inset_0_0_0_1px_#f2b81c]"
+  },
+  orange: {
+    hover: "hover:shadow-[inset_0_0_0_1px_#ff6600]",
+    active: "shadow-[inset_0_0_0_1px_#ff6600]"
+  },
+  pink: {
+    hover: "hover:shadow-[inset_0_0_0_1px_#f30074]",
+    active: "shadow-[inset_0_0_0_1px_#f30074]"
+  },
+  purple: {
+    hover: "hover:shadow-[inset_0_0_0_1px_#7f33d4]",
+    active: "shadow-[inset_0_0_0_1px_#7f33d4]"
+  },
+  blue: {
+    hover: "hover:shadow-[inset_0_0_0_1px_#3f7fdf]",
+    active: "shadow-[inset_0_0_0_1px_#3f7fdf]"
+  }
+};
+
 export const SWATCH_TONE_CLASSES = {
   none: "border-hairline bg-canvas text-ink",
   gold: "border-[#f2b81c] bg-[#f9f1dc] text-transparent",
@@ -32,10 +59,13 @@ export const dropboardTailwindCandidates = [
   "text-ink",
   "text-primary",
   "text-on-primary",
+  "text-[#1f7a3d]",
+  "text-[#c62828]",
   "text-ink-muted-48",
   "text-ink-muted-80",
   "text-transparent",
   "border",
+  "border-2",
   "border-hairline",
   "border-divider-soft",
   "border-primary",
@@ -51,6 +81,12 @@ export const dropboardTailwindCandidates = [
   "shadow-[0_0_0_1px_#cc3300]",
   "shadow-[0_4px_16px_rgba(0,0,0,0.08)]",
   "shadow-[0_6px_20px_rgba(0,0,0,0.10)]",
+  "shadow-[inset_0_0_0_1px_#7a7a7a]",
+  "shadow-[inset_0_0_0_1px_#f2b81c]",
+  "shadow-[inset_0_0_0_1px_#ff6600]",
+  "shadow-[inset_0_0_0_1px_#f30074]",
+  "shadow-[inset_0_0_0_1px_#7f33d4]",
+  "shadow-[inset_0_0_0_1px_#3f7fdf]",
   "transition",
   "transition-shadow",
   "transition-colors",
@@ -62,8 +98,10 @@ export const dropboardTailwindCandidates = [
   "px-xl",
   "p-sm",
   "p-[10px]",
+  "p-[5px]",
   "p-md",
   "p-lg",
+  "pb-0",
   "px-sm",
   "px-md",
   "py-xs",
@@ -71,9 +109,11 @@ export const dropboardTailwindCandidates = [
   "py-md",
   "pt-sm",
   "mt-xs",
+  "mt-[4px]",
   "mt-sm",
   "mt-md",
   "mb-xs",
+  "mb-[4px]",
   "mb-sm",
   "mb-md",
   "mb-lg",
@@ -103,7 +143,12 @@ export const dropboardTailwindCandidates = [
   "max-h-[92vh]",
   "max-h-[72vh]",
   "max-h-[52vh]",
+  "max-h-[250px]",
   "max-h-[260px]",
+  "h-[500px]",
+  "h-[250px]",
+  "h-[72vh]",
+  "h-full",
   "min-w-0",
   "min-w-full",
   "min-w-[240px]",
@@ -113,6 +158,7 @@ export const dropboardTailwindCandidates = [
   "min-h-[420px]",
   "min-h-[560px]",
   "min-h-[144px]",
+  "min-h-0",
   "overflow-auto",
   "overflow-hidden",
   "overflow-x-auto",
@@ -147,6 +193,7 @@ export const dropboardTailwindCandidates = [
   "cursor-grab",
   "cursor-grabbing",
   "shrink-0",
+  "grow",
   "size-3",
   "size-4",
   "select-none",
@@ -183,6 +230,12 @@ export const dropboardTailwindCandidates = [
   "hover:bg-primary-focus",
   "hover:bg-[rgba(204,51,0,0.06)]",
   "hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)]",
+  "hover:shadow-[inset_0_0_0_1px_#7a7a7a]",
+  "hover:shadow-[inset_0_0_0_1px_#f2b81c]",
+  "hover:shadow-[inset_0_0_0_1px_#ff6600]",
+  "hover:shadow-[inset_0_0_0_1px_#f30074]",
+  "hover:shadow-[inset_0_0_0_1px_#7f33d4]",
+  "hover:shadow-[inset_0_0_0_1px_#3f7fdf]",
   "focus-visible:outline-2",
   "focus-visible:outline-primary",
   "focus-visible:outline-offset-2",
