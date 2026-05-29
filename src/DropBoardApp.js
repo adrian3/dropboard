@@ -158,7 +158,7 @@ export default function DropBoardApp({
   const [status, setStatus] = useState("Loading...");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [showFilters, setShowFilters] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
   const [missingDataSource, setMissingDataSource] = useState(null);
   const [configPath, setConfigPath] = useState("");
   const [pathValidationMsg, setPathValidationMsg] = useState("");
