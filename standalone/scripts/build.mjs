@@ -2,6 +2,7 @@ import { build } from "esbuild";
 import { mkdir, writeFile, cp } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { generateDropboardStyles } from "./generateDropboardStyles.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
@@ -9,6 +10,7 @@ const projectRoot = resolve(root, "..");
 const dist = resolve(root, "dist");
 
 await mkdir(dist, { recursive: true });
+await generateDropboardStyles();
 
 const result = await build({
   entryPoints: [resolve(root, "src/main.jsx")],
@@ -33,6 +35,9 @@ const html = `<!doctype html>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>DropBoard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vollkorn:wght@400;500;600;700&family=Montserrat:wght@400;500;600&display=swap" />
 </head>
 <body>
   <div id="root"></div>

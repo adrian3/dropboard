@@ -2,9 +2,9 @@
   "version": 1,
   "board": {
     "id": "board-main",
-    "name": "Work Dashboard",
+    "name": "Dashboard",
     "createdAt": "2026-05-22T00:00:00Z",
-    "updatedAt": "2026-05-28T03:07:48.133Z"
+    "updatedAt": "2026-05-29T02:05:19.660Z"
   },
   "columns": [
     {
@@ -37,13 +37,35 @@
     {
       "id": "c_dq4dqyau",
       "title": "New task",
-      "description": "Test",
+      "description": "Test[adrian3/Ade-s-design-system](https://github.com/adrian3/Ade-s-design-system)\n\nApply the design system from this repo to this project.\n\nDesign system source of truth:\n- ./design.md\n- ./baseline.css\n- ./tailwind.theme.json\n- ./index.html\n- ./baseline.html\n\nYour job:\n- Restyle the existing app so it conforms to this design system.\n- Remove as much existing styling as possible unless it is structurally necessary.\n- Prefer deleting old CSS, component-library overrides, theme files, utility clutter, and inline styles rather than layering new styles on top.\n- Make the final result feel like one coherent system, not a mix of the old app and the new design system.\n\nImportant design constraints:\n- Editorial, prose-first, minimal visual language\n- White main canvas\n- `#fafafa` for header/footer/supporting surfaces\n- Vollkorn for reading/display text\n- Montserrat for utility text and buttons\n- Single accent color: `#cc3300`\n- Tight 4px control radius\n- No gradients\n- No dark sections unless absolutely required for functionality\n- Minimal chrome, light borders, whitespace-first hierarchy\n- Buttons, inputs, and selects should share consistent control height\n- Heroicons are the preferred icon set\n\nImplementation priorities:\n1. Read and follow `design.md` first.\n2. Reuse tokens from `tailwind.theme.json` if the project uses Tailwind.\n3. If the project renders raw HTML or markdown, use the ideas in `baseline.css`.\n4. Remove conflicting old styling systems where possible.\n5. Simplify components instead of preserving decorative legacy patterns.\n6. Keep accessibility intact.\n\nWhat to preserve:\n- Existing functionality\n- Existing content and information architecture unless styling changes require small structural adjustments\n- Responsive behavior\n- Accessibility and usable contrast\n- Important product logic\n\nWhat to avoid:\n- Do not invent a new visual direction.\n- Do not keep legacy brand colors, gradients, shadows, or radii unless I explicitly ask.\n- Do not leave old styling in place just because it works.\n- Do not create a hybrid of the old design and the new system.\n\nDeliverables:\n- Update the code directly.\n- Briefly summarize what old styling systems or files were removed or reduced.\n- Point out any places where the app structure fought the design system and what you changed to resolve that.",
+      "externalUrl": "",
+      "color": "gold",
+      "columnId": "col-week",
+      "order": 100,
+      "createdAt": "2026-05-28T03:06:57.255Z",
+      "updatedAt": "2026-05-29T02:05:14.160Z"
+    },
+    {
+      "id": "c_0gu3z6sj",
+      "title": "New task",
+      "description": "",
+      "externalUrl": "",
+      "color": "gold",
+      "columnId": "col-inbox",
+      "order": 200,
+      "createdAt": "2026-05-29T01:18:00.548Z",
+      "updatedAt": "2026-05-29T01:21:07.267Z"
+    },
+    {
+      "id": "c_eteawldy",
+      "title": "New task",
+      "description": "",
       "externalUrl": "",
       "color": "none",
       "columnId": "col-inbox",
       "order": 100,
-      "createdAt": "2026-05-28T03:06:57.255Z",
-      "updatedAt": "2026-05-28T03:07:47.655Z"
+      "createdAt": "2026-05-29T01:21:04.517Z",
+      "updatedAt": "2026-05-29T01:21:07.267Z"
     }
   ],
   "settings": {

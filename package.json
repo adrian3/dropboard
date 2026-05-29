@@ -1,6 +1,9 @@
 {
   "name": "@adrian3/dropboard-core",
   "version": "0.1.0",
+  "engines": {
+    "node": ">=24.16.0 <25"
+  },
   "type": "module",
   "main": "./src/index.js",
   "exports": {
@@ -12,6 +15,7 @@
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
+    "@heroicons/react": "^2.2.0",
     "dompurify": "^3.4.5",
     "lucide-react": "^1.16.0",
     "marked": "^18.0.4"

@@ -2,22 +2,51 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import DropBoardApp from "../../src/DropBoardApp.js";
 
+const DESIGN_FONT_LINKS = [
+  {
+    rel: "preconnect",
+    href: "https://fonts.googleapis.com"
+  },
+  {
+    rel: "preconnect",
+    href: "https://fonts.gstatic.com",
+    crossOrigin: "anonymous"
+  },
+  {
+    rel: "stylesheet",
+    href: "https://fonts.googleapis.com/css2?family=Vollkorn:wght@400;500;600;700&family=Montserrat:wght@400;500;600&display=swap"
+  }
+];
+
+function ensureFonts() {
+  if (typeof document === "undefined") return;
+  for (const link of DESIGN_FONT_LINKS) {
+    const selector = `link[href="${link.href}"]`;
+    if (document.head.querySelector(selector)) continue;
+    const el = document.createElement("link");
+    el.rel = link.rel;
+    el.href = link.href;
+    if (link.crossOrigin) el.crossOrigin = link.crossOrigin;
+    document.head.appendChild(el);
+  }
+}
+
 function ErrorView({ error }) {
   return (
     <div style={{
-      fontFamily: "Avenir Next, Segoe UI, Helvetica Neue, Arial, sans-serif",
+      fontFamily: "Vollkorn, Georgia, serif",
       padding: "24px",
-      color: "#1e1f25",
-      background: "#ececec",
+      color: "#1d1d1f",
+      background: "#ffffff",
       minHeight: "100vh",
       whiteSpace: "pre-wrap"
     }}>
-      <h1 style={{ marginTop: 0, fontSize: "28px" }}>DropBoard failed to start</h1>
+      <h1 style={{ marginTop: 0, fontSize: "clamp(2rem, 5vw, 3rem)", lineHeight: 1.08, fontWeight: 600 }}>DropBoard failed to start</h1>
       <p>The standalone launcher hit an error before the board UI could render.</p>
       <pre style={{
-        background: "#fff",
-        border: "1px solid #cfcfd2",
-        borderRadius: "12px",
+        background: "#fafafa",
+        border: "1px solid #e0e0e0",
+        borderRadius: "4px",
         padding: "16px",
         overflow: "auto"
       }}>
@@ -67,6 +96,8 @@ const rootEl = document.getElementById("root");
 if (!rootEl) {
   throw new Error("Missing root element");
 }
+
+ensureFonts();
 
 createRoot(rootEl).render(
   <StartupBoundary>

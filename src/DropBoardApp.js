@@ -2,9 +2,10 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
-import { Eye, EyeOff, Funnel, Settings } from "lucide-react";
+import { Cog6ToothIcon, EyeIcon, EyeSlashIcon, FunnelIcon } from "@heroicons/react/24/outline";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
+import { CARD_TONE_CLASSES, SWATCH_TONE_CLASSES } from "./dropboardTailwind";
 import { dropboardStyles } from "./dropboardStyles";
 
 const COLORS = ["none", "gold", "orange", "pink", "purple", "blue"];
@@ -60,7 +61,7 @@ function ensureShape(data) {
     : [];
   return {
     version: 1,
-    board: data?.board || { id: "board-main", name: "Work Dashboard", createdAt: todayIso(), updatedAt: todayIso() },
+    board: data?.board || { id: "board-main", name: "Dashboard", createdAt: todayIso(), updatedAt: todayIso() },
     columns,
     cards,
     settings: data?.settings || {}
@@ -88,6 +89,20 @@ function compactUrlLabel(rawUrl) {
   const value = String(rawUrl || "").trim();
   if (!value) return "";
   return value.replace(/^https?:\/\//i, "");
+}
+
+function swatchClass(color, activeColor) {
+  return [
+    color === "none"
+      ? "inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border px-sm font-button-utility text-button-utility transition-colors duration-150 ease-out"
+      : "inline-flex h-[44px] w-[44px] items-center justify-center rounded-full border transition-colors duration-150 ease-out",
+    SWATCH_TONE_CLASSES[color] || SWATCH_TONE_CLASSES.none,
+    activeColor === color ? "border-primary shadow-[0_0_0_1px_#cc3300]" : ""
+  ].filter(Boolean).join(" ");
+}
+
+function cardColorClass(color) {
+  return CARD_TONE_CLASSES[color] || CARD_TONE_CLASSES.none;
 }
 
 export default function DropBoardApp({
@@ -123,7 +138,7 @@ export default function DropBoardApp({
   });
 
   const [settingsDraft, setSettingsDraft] = useState({
-    boardName: "Work Dashboard",
+    boardName: "Dashboard",
     dataSourcePath: "",
     columns: DEFAULT_COLUMNS.map((c) => ({ ...c }))
   });
@@ -262,7 +277,7 @@ export default function DropBoardApp({
     setPathValidationMsg("");
     setPathValidationKind("info");
     setSettingsDraft({
-      boardName: doc.board?.name || "Work Dashboard",
+      boardName: doc.board?.name || "Dashboard",
       dataSourcePath: configPath || "",
       columns: doc.columns.map((c) => ({ ...c }))
     });
@@ -418,7 +433,7 @@ export default function DropBoardApp({
   }
 
   async function saveSettings() {
-    const cleanTitle = settingsDraft.boardName.trim() || "Work Dashboard";
+    const cleanTitle = settingsDraft.boardName.trim() || "Dashboard";
     const cleanPath = settingsDraft.dataSourcePath.trim() || configPath || initialDataSourcePath;
     const pathChanged = cleanPath !== (configPath || "");
     const cleanColumns = settingsDraft.columns
@@ -528,32 +543,43 @@ export default function DropBoardApp({
   }
 
   return (
-    <div className="app">
+    <div className="min-h-screen bg-canvas px-lg py-lg pb-xl text-body text-ink md:px-xl">
       <style jsx global>{dropboardStyles}</style>
       <DragDropContext onDragEnd={onGlobalDragEnd}>
-      <div className="header-row">
-        <h1 className="title">{doc.board?.name || "Work Dashboard"}</h1>
-        <div className="topbar">
-          <div className="note">{status}</div>
-          <button className="icon-btn" onClick={() => setShowFilters((v) => !v)} title="Filters" aria-label="Filters">
-            <Funnel size={16} />
+      <div className="mb-md grid gap-md border-b border-hairline pb-sm md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+        <h1 className="max-w-[13ch] font-display-lg text-display-lg leading-[1.05] tracking-[-0.02em] text-ink">
+          {doc.board?.name || "Dashboard"}
+        </h1>
+        <div className="flex flex-wrap items-center gap-xs md:justify-end">
+          <div className="pr-xxs font-caption text-caption text-ink-muted-48">{status}</div>
+          <button
+            className="inline-flex min-h-[44px] w-[44px] items-center justify-center rounded-sm border border-hairline bg-canvas-parchment text-ink transition-colors duration-150 ease-out hover:border-primary hover:text-primary focus-visible:border-primary focus-visible:text-primary focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+            onClick={() => setShowFilters((v) => !v)}
+            title="Filters"
+            aria-label="Filters"
+          >
+            <FunnelIcon className="size-4" />
           </button>
-          <button className="icon-btn" onClick={openSettings} title="Settings" aria-label="Settings">
-            <Settings size={16} />
+          <button
+            className="inline-flex min-h-[44px] w-[44px] items-center justify-center rounded-sm border border-hairline bg-canvas-parchment text-ink transition-colors duration-150 ease-out hover:border-primary hover:text-primary focus-visible:border-primary focus-visible:text-primary focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+            onClick={openSettings}
+            title="Settings"
+            aria-label="Settings"
+          >
+            <Cog6ToothIcon className="size-4" />
           </button>
         </div>
       </div>
 
       {showFilters && (
-        <section className="filters-panel">
-          <div className="filters-group">
-            <div className="label">Filter by color</div>
-            <div className="swatches">
+        <section className="mb-sm grid gap-md rounded-sm border border-hairline bg-canvas-parchment p-md md:grid-cols-2">
+          <div className="min-w-0">
+            <div className="mb-xs font-caption text-caption text-ink-muted-80">Filter by color</div>
+            <div className="flex flex-wrap gap-xs">
               {COLORS.map((color) => (
                 <button
                   key={`filter-${color}`}
-                  className={`swatch ${color === "none" ? "none" : ""} ${activeColorFilters.includes(color) ? "active" : ""}`}
-                  style={color !== "none" ? { background: color === "gold" ? "#f2b81c" : color === "orange" ? "#ff6600" : color === "pink" ? "#f30074" : color === "purple" ? "#7f33d4" : "#3f7fdf" } : {}}
+                  className={swatchClass(color, activeColorFilters.includes(color) ? color : null)}
                   onClick={() => toggleColorFilter(color)}
                 >
                   {color === "none" ? "None" : ""}
@@ -561,16 +587,21 @@ export default function DropBoardApp({
               ))}
             </div>
           </div>
-          <div className="filters-group">
-            <div className="label">Show columns</div>
-            <div className="column-toggles">
+          <div className="min-w-0">
+            <div className="mb-xs font-caption text-caption text-ink-muted-80">Show columns</div>
+            <div className="flex flex-wrap gap-xs">
               {doc.columns.map((col) => (
                 <button
                   key={`col-toggle-${col.id}`}
-                  className={`column-toggle ${visibleColumnIds.includes(col.id) ? "is-visible" : "is-hidden"}`}
+                  className={[
+                    "inline-flex min-h-[44px] items-center gap-xs rounded-sm border px-md font-nav-link text-nav-link uppercase transition-colors duration-150 ease-out hover:border-primary focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
+                    visibleColumnIds.includes(col.id)
+                      ? "border-hairline bg-canvas text-ink"
+                      : "border-hairline bg-canvas-parchment text-ink-muted-48"
+                  ].join(" ")}
                   onClick={() => toggleColumnVisibility(col.id)}
                 >
-                  {visibleColumnIds.includes(col.id) ? <Eye size={12} className="chip-check" /> : <EyeOff size={12} className="chip-check" />}
+                  {visibleColumnIds.includes(col.id) ? <EyeIcon className="size-3 shrink-0" /> : <EyeSlashIcon className="size-3 shrink-0" />}
                   {col.title}
                 </button>
               ))}
@@ -580,107 +611,106 @@ export default function DropBoardApp({
       )}
 
       {missingDataSource && (
-        <div className="missing-banner">
-          <div className="missing-title">Data source not found.</div>
-          <div className="missing-body">Current path: <code>{missingDataSource.path}</code></div>
-          <div className="missing-body">Open Settings and fix the data source path, or reset to default to use `dropboard.default.json` in this folder.</div>
-          <div className="missing-actions">
-            <button className="save" onClick={openSettings}>Open Settings</button>
-            <button className="modal-close" onClick={useDefaultDataSource}>Use Default Path</button>
+        <div className="mb-sm rounded-sm border border-primary bg-canvas-parchment p-md">
+          <div className="mb-xs font-display-md text-display-md text-ink">Data source not found.</div>
+          <div className="mb-xxs text-body text-ink">Current path: <code>{missingDataSource.path}</code></div>
+          <div className="text-body text-ink">Open Settings and fix the data source path, or reset to default to use `dropboard.default.json` in this folder.</div>
+          <div className="mt-sm flex flex-wrap gap-xs">
+            <button className="inline-flex min-h-[44px] items-center justify-center rounded-sm border border-primary bg-primary px-md font-button-utility text-button-utility text-on-primary transition-colors duration-150 ease-out hover:border-primary-focus hover:bg-primary-focus focus-visible:border-primary-focus focus-visible:bg-primary-focus focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" onClick={openSettings}>Open Settings</button>
+            <button className="inline-flex min-h-[44px] items-center justify-center rounded-sm border border-hairline bg-canvas-parchment px-md font-button-utility text-button-utility text-ink transition-colors duration-150 ease-out hover:border-primary hover:text-primary focus-visible:border-primary focus-visible:text-primary focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" onClick={useDefaultDataSource}>Use Default Path</button>
           </div>
         </div>
       )}
 
       {isAddOpen && (
-        <div className="modal-overlay" onClick={() => setIsAddOpen(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">
-              <h3>Add Card</h3>
-              <button className="modal-close" onClick={() => setIsAddOpen(false)}>Cancel</button>
+        <div className="fixed inset-0 z-30 flex items-center justify-center bg-[rgba(29,29,31,0.18)] p-md" onClick={() => setIsAddOpen(false)}>
+          <div className="max-h-[92vh] w-full max-w-[980px] overflow-auto rounded-sm border border-hairline bg-canvas p-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-sm flex items-start justify-between gap-sm">
+              <h3 className="font-display-md text-display-md text-ink">Add Card</h3>
+              <button className="inline-flex min-h-[44px] items-center justify-center rounded-sm border border-hairline bg-canvas-parchment px-md font-button-utility text-button-utility text-ink transition-colors duration-150 ease-out hover:border-primary hover:text-primary focus-visible:border-primary focus-visible:text-primary focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" onClick={() => setIsAddOpen(false)}>Cancel</button>
             </div>
-            <input className="field modal-field" placeholder="Task title" value={draftCard.title} onChange={(e) => setDraftCard((prev) => ({ ...prev, title: e.target.value }))} />
-            <textarea className="field modal-field" placeholder="What needs to happen?" value={draftCard.description} onChange={(e) => setDraftCard((prev) => ({ ...prev, description: e.target.value }))} />
-            <input className="field modal-field" placeholder="Optional external link (https://...)" value={draftCard.externalUrl} onChange={(e) => setDraftCard((prev) => ({ ...prev, externalUrl: e.target.value }))} />
-            <select className="field modal-field" value={draftCard.columnId} onChange={(e) => setDraftCard((prev) => ({ ...prev, columnId: e.target.value }))}>
+            <input className="mb-sm min-h-[44px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" placeholder="Task title" value={draftCard.title} onChange={(e) => setDraftCard((prev) => ({ ...prev, title: e.target.value }))} />
+            <textarea className="mb-sm min-h-[144px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" placeholder="What needs to happen?" value={draftCard.description} onChange={(e) => setDraftCard((prev) => ({ ...prev, description: e.target.value }))} />
+            <input className="mb-sm min-h-[44px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" placeholder="Optional external link (https://...)" value={draftCard.externalUrl} onChange={(e) => setDraftCard((prev) => ({ ...prev, externalUrl: e.target.value }))} />
+            <select className="mb-sm min-h-[44px] w-full appearance-none rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" value={draftCard.columnId} onChange={(e) => setDraftCard((prev) => ({ ...prev, columnId: e.target.value }))}>
               {doc.columns.map((col) => <option key={col.id} value={col.id}>{col.title}</option>)}
             </select>
-            <div className="label">Color</div>
-            <div className="swatches modal-swatches">
+            <div className="mb-xs font-caption text-caption text-ink-muted-80">Color</div>
+            <div className="mb-md flex flex-wrap gap-xs">
               {COLORS.map((color) => (
                 <button
                   key={color}
-                  className={`swatch ${color === "none" ? "none" : ""} ${draftCard.color === color ? "active" : ""}`}
-                  style={color !== "none" ? { background: color === "gold" ? "#f2b81c" : color === "orange" ? "#ff6600" : color === "pink" ? "#f30074" : color === "purple" ? "#7f33d4" : "#3f7fdf" } : {}}
+                  className={swatchClass(color, draftCard.color)}
                   onClick={() => setDraftCard((prev) => ({ ...prev, color }))}
                 >
                   {color === "none" ? "None" : ""}
                 </button>
               ))}
             </div>
-            <button className="save" onClick={onAddCard}>Save</button>
+            <button className="inline-flex min-h-[44px] items-center justify-center rounded-sm border border-primary bg-primary px-md font-button-utility text-button-utility text-on-primary transition-colors duration-150 ease-out hover:border-primary-focus hover:bg-primary-focus focus-visible:border-primary-focus focus-visible:bg-primary-focus focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" onClick={onAddCard}>Save</button>
           </div>
         </div>
       )}
 
       {isSettingsOpen && (
-        <div className="modal-overlay" onClick={() => setIsSettingsOpen(false)}>
-          <div className="modal settings-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">
-              <h3>Settings</h3>
-              <button className="modal-close" onClick={() => setIsSettingsOpen(false)}>Close</button>
+        <div className="fixed inset-0 z-30 flex items-center justify-center bg-[rgba(29,29,31,0.18)] p-md" onClick={() => setIsSettingsOpen(false)}>
+          <div className="max-h-[92vh] w-full max-w-[1020px] overflow-auto rounded-sm border border-hairline bg-canvas p-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-sm flex items-start justify-between gap-sm">
+              <h3 className="font-display-md text-display-md text-ink">Settings</h3>
+              <button className="inline-flex min-h-[44px] items-center justify-center rounded-sm border border-hairline bg-canvas-parchment px-md font-button-utility text-button-utility text-ink transition-colors duration-150 ease-out hover:border-primary hover:text-primary focus-visible:border-primary focus-visible:text-primary focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" onClick={() => setIsSettingsOpen(false)}>Close</button>
             </div>
 
-            <div className="label">Dashboard Title</div>
+            <div className="mb-xs font-caption text-caption text-ink-muted-80">Dashboard title</div>
             <input
-              className="field modal-field"
+              className="mb-sm min-h-[44px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
               value={settingsDraft.boardName}
               onChange={(e) => setSettingsDraft((prev) => ({ ...prev, boardName: e.target.value }))}
             />
 
-            <div className="label">Data Source Path</div>
+            <div className="mb-xs font-caption text-caption text-ink-muted-80">Data source path</div>
             <input
-              className="field modal-field"
+              className="mb-sm min-h-[44px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
               value={settingsDraft.dataSourcePath}
               onChange={(e) => setSettingsDraft((prev) => ({ ...prev, dataSourcePath: e.target.value }))}
             />
-            <div className="meta">Blank means default local file in app folder. Use absolute path for shared iCloud/OneDrive JSON.</div>
-            <div className="settings-path-actions">
-              <button className="modal-close" onClick={testDataSourcePath}>Test Path</button>
+            <div className="text-caption text-ink-muted-48">Blank means default local file in app folder. Use absolute path for shared iCloud/OneDrive JSON.</div>
+            <div className="mb-xs mt-xs">
+              <button className="inline-flex min-h-[44px] items-center justify-center rounded-sm border border-hairline bg-canvas-parchment px-md font-button-utility text-button-utility text-ink transition-colors duration-150 ease-out hover:border-primary hover:text-primary focus-visible:border-primary focus-visible:text-primary focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" onClick={testDataSourcePath}>Test Path</button>
             </div>
-            {pathValidationMsg && <div className={`meta ${pathValidationKind === "ok" ? "meta-ok" : pathValidationKind === "error" ? "meta-error" : ""}`}>{pathValidationMsg}</div>}
+            {pathValidationMsg && <div className={`text-caption ${pathValidationKind === "ok" || pathValidationKind === "error" ? "text-primary" : "text-ink-muted-48"}`}>{pathValidationMsg}</div>}
 
-            <div className="settings-columns-head">
-              <div className="label">Columns</div>
+            <div className="mt-sm">
+              <div className="mb-xs font-caption text-caption text-ink-muted-80">Columns</div>
             </div>
 
             <Droppable droppableId="settings-columns-droppable" type="SETTINGS_COLUMN">
               {(provided) => (
-                <div className="settings-columns" ref={provided.innerRef} {...provided.droppableProps}>
+                <div className="mt-xs grid gap-xs" ref={provided.innerRef} {...provided.droppableProps}>
                   {settingsDraft.columns.map((col, idx) => (
                     <Draggable key={col.id} draggableId={`settings-${col.id}`} index={idx}>
                       {(dragProvided) => (
                         <div
-                          className="settings-col-row"
+                          className="grid min-w-0 grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-xs rounded-sm border border-hairline bg-canvas-parchment p-[10px]"
                           ref={dragProvided.innerRef}
                           {...dragProvided.draggableProps}
                           {...dragProvided.dragHandleProps}
                         >
                           <span
-                            className="settings-drag-handle"
+                            className="inline-flex min-h-[44px] w-[44px] select-none items-center justify-center rounded-sm border border-hairline bg-canvas text-ink-muted-48 transition-colors duration-150 ease-out hover:border-primary hover:text-primary"
                             title="Drag to reorder"
                             aria-label="Drag to reorder"
                           >
                             ⋮⋮
                           </span>
                           <input
-                            className="field"
+                            className="min-h-[44px] min-w-0 rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
                             value={col.title}
                             onChange={(e) => setSettingsDraft((prev) => ({
                               ...prev,
                               columns: prev.columns.map((c) => c.id === col.id ? { ...c, title: e.target.value } : c)
                             }))}
                           />
-                          <button className="modal-close settings-remove" onClick={() => removeSettingColumn(col.id)} disabled={settingsDraft.columns.length <= 1}>Remove</button>
+                          <button className="inline-flex min-h-[44px] items-center justify-center rounded-sm border border-hairline bg-canvas-parchment px-md font-button-utility text-button-utility text-ink transition-colors duration-150 ease-out hover:border-primary hover:text-primary focus-visible:border-primary focus-visible:text-primary focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-45" onClick={() => removeSettingColumn(col.id)} disabled={settingsDraft.columns.length <= 1}>Remove</button>
                         </div>
                       )}
                     </Draggable>
@@ -689,142 +719,149 @@ export default function DropBoardApp({
                 </div>
               )}
             </Droppable>
-            <button className="modal-close settings-add-column" onClick={addSettingColumn}>+ Add Column</button>
+            <button className="mt-xs inline-flex min-h-[44px] items-center justify-center rounded-sm border border-hairline bg-canvas-parchment px-md font-button-utility text-button-utility text-ink transition-colors duration-150 ease-out hover:border-primary hover:text-primary focus-visible:border-primary focus-visible:text-primary focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" onClick={addSettingColumn}>+ Add Column</button>
 
-            <div className="settings-actions">
-              <button className="save" onClick={saveSettings}>Save Settings</button>
+            <div className="mt-sm">
+              <button className="inline-flex min-h-[44px] items-center justify-center rounded-sm border border-primary bg-primary px-md font-button-utility text-button-utility text-on-primary transition-colors duration-150 ease-out hover:border-primary-focus hover:bg-primary-focus focus-visible:border-primary-focus focus-visible:bg-primary-focus focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" onClick={saveSettings}>Save Settings</button>
             </div>
             {allowDeleteBoard ? (
-              <div className="settings-danger-zone">
-                <div className="meta meta-error">
+              <div className="mt-sm flex flex-wrap items-start justify-between gap-sm border-t border-divider-soft pt-sm">
+                <div className="text-caption text-primary">
                   Danger zone: deleting this board removes it from the app{boardMode === "linked" ? " but keeps the linked JSON file." : " and deletes its local board file."}
                 </div>
-                <button className="danger-btn" onClick={deleteBoard}>Delete Board</button>
+                <button className="inline-flex min-h-[44px] w-fit items-center justify-center self-start rounded-sm border border-primary bg-canvas px-md font-button-utility text-button-utility text-primary transition-colors duration-150 ease-out hover:bg-[rgba(204,51,0,0.06)] focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" onClick={deleteBoard}>Delete Board</button>
               </div>
             ) : null}
           </div>
         </div>
       )}
 
-      <div className="board-wrap" onClick={handleDeselectCard}>
-          <div className="board">
-            {shownColumns.map((col) => {
-              const cards = filteredCardsByColumn[col.id] || [];
-              return (
-                <Droppable droppableId={col.id} key={col.id} type="CARD">
-                  {(provided) => (
-                    <section className="column" ref={provided.innerRef} {...provided.droppableProps}>
-                      <div className="column-header">
-                        <span>{col.title}</span>
-                        <span>{cards.length}</span>
-                      </div>
-                      {col.id === shownColumns[0]?.id && (
-                        <button className="column-add-btn" onClick={(e) => { e.stopPropagation(); openAddModal(); }}>+ Add card</button>
-                      )}
-                      <div className="drop-area">
-                        {cards.map((card, index) => (
-                          <Draggable draggableId={card.id} index={index} key={card.id}>
-                            {(dragProvided) => (
-                              <article
-                                className={`card ${card.color !== "none" ? `color-${card.color}` : ""} ${selectedId === card.id ? "is-selected" : ""}`}
-                                ref={dragProvided.innerRef}
-                                {...dragProvided.draggableProps}
-                                {...dragProvided.dragHandleProps}
-                                onClick={async (e) => { e.stopPropagation(); await handleSelectCard(card.id); }}
-                              >
-                                <h3 className="card-title">{card.title || "Untitled"}</h3>
-                                <div
-                                  className="card-desc"
-                                  dangerouslySetInnerHTML={{ __html: renderMarkdownInline(card.description || "") }}
-                                />
-                                {asSafeExternalUrl(card.externalUrl) && (
-                                  <a
-                                    className="card-link"
-                                    href={asSafeExternalUrl(card.externalUrl)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    title={card.externalUrl}
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    {compactUrlLabel(card.externalUrl)}
-                                  </a>
-                                )}
-                              </article>
-                            )}
-                          </Draggable>
-                        ))}
-                        {provided.placeholder}
-                      </div>
-                    </section>
-                  )}
-                </Droppable>
-              );
-            })}
-          </div>
+      <div className="overflow-x-auto pt-xxs pb-sm" onClick={handleDeselectCard}>
+        <div className="grid min-w-full w-max max-h-[72vh] grid-flow-col auto-cols-[290px] content-start gap-sm xl:auto-cols-[240px]">
+          {shownColumns.map((col) => {
+            const cards = filteredCardsByColumn[col.id] || [];
+            return (
+              <Droppable droppableId={col.id} key={col.id} type="CARD">
+                {(provided) => (
+                  <section className="flex min-h-[560px] min-w-[290px] max-w-full flex-col rounded-sm border border-hairline bg-canvas-parchment p-md xl:min-h-[420px] xl:min-w-[240px]" ref={provided.innerRef} {...provided.droppableProps}>
+                    <div className="mb-sm flex items-baseline justify-between gap-sm font-caption text-caption text-ink-muted-80">
+                      <span>{col.title}</span>
+                      <span>{cards.length}</span>
+                    </div>
+                    {col.id === shownColumns[0]?.id && (
+                      <button className="mb-sm inline-flex min-h-[44px] w-fit items-center justify-center self-start rounded-sm border border-primary bg-primary px-md font-button-utility text-button-utility text-on-primary transition-colors duration-150 ease-out hover:border-primary-focus hover:bg-primary-focus focus-visible:border-primary-focus focus-visible:bg-primary-focus focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" onClick={(e) => { e.stopPropagation(); openAddModal(); }}>
+                        + Add card
+                      </button>
+                    )}
+                    <div className="min-h-[180px] min-w-0 max-h-[52vh] overflow-y-auto">
+                      {cards.map((card, index) => (
+                        <Draggable draggableId={card.id} index={index} key={card.id}>
+                          {(dragProvided) => (
+                            <article
+                              className={[
+                                "mb-sm w-full min-w-0 max-w-full max-h-[260px] cursor-pointer overflow-auto rounded-sm border p-sm shadow-[0_0_0_rgba(0,0,0,0)] transition-shadow duration-150 ease-out hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)]",
+                                cardColorClass(card.color),
+                                selectedId === card.id ? "shadow-[0_6px_20px_rgba(0,0,0,0.10)]" : ""
+                              ].join(" ")}
+                              ref={dragProvided.innerRef}
+                              {...dragProvided.draggableProps}
+                              {...dragProvided.dragHandleProps}
+                              onClick={async (e) => { e.stopPropagation(); await handleSelectCard(card.id); }}
+                            >
+                              <h3 className="mb-xs font-tagline text-tagline text-ink">{card.title || "Untitled"}</h3>
+                              <div
+                                className="dropboard-markdown min-w-0 text-body text-ink"
+                                dangerouslySetInnerHTML={{ __html: renderMarkdownInline(card.description || "") }}
+                              />
+                              {asSafeExternalUrl(card.externalUrl) && (
+                                <a
+                                  className="mt-sm block max-w-full truncate font-caption-strong text-caption text-primary"
+                                  href={asSafeExternalUrl(card.externalUrl)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title={card.externalUrl}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {compactUrlLabel(card.externalUrl)}
+                                </a>
+                              )}
+                            </article>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
+                    </div>
+                  </section>
+                )}
+              </Droppable>
+            );
+          })}
+        </div>
       </div>
 
       {selected && (
-      <section className="details" onClick={(e) => e.stopPropagation()}>
-        <h2>Card Details</h2>
-        <input
-          className="field"
-          placeholder="Task title"
-          value={selected.title || ""}
-          onChange={(e) => selected && setDoc((prev) => {
-            setSelectedDirty(true);
-            return { ...prev, cards: prev.cards.map((c) => c.id === selected.id ? { ...c, title: e.target.value, updatedAt: todayIso() } : c) };
-          })}
-          onBlur={commitSelectedIfDirty}
-        />
-        <textarea
-          className="field"
-          placeholder="What needs to happen?"
-          value={selected.description || ""}
-          onChange={(e) => selected && setDoc((prev) => {
-            setSelectedDirty(true);
-            return { ...prev, cards: prev.cards.map((c) => c.id === selected.id ? { ...c, description: e.target.value, updatedAt: todayIso() } : c) };
-          })}
-          onBlur={commitSelectedIfDirty}
-        />
-        <input
-          className="field"
-          placeholder="Optional external link (https://...)"
-          value={selected.externalUrl || ""}
-          onChange={(e) => selected && setDoc((prev) => {
-            setSelectedDirty(true);
-            return { ...prev, cards: prev.cards.map((c) => c.id === selected.id ? { ...c, externalUrl: e.target.value, updatedAt: todayIso() } : c) };
-          })}
-          onBlur={commitSelectedIfDirty}
-        />
-        <select
-          className="field"
-          value={selected.columnId || ""}
-          onChange={(e) => moveSelectedToColumn(e.target.value)}
-        >
-          {doc.columns.map((col) => (
-            <option key={col.id} value={col.id}>{col.title}</option>
-          ))}
-        </select>
+        <section className="mt-sm grid gap-sm rounded-sm border border-hairline bg-canvas-parchment p-md" onClick={(e) => e.stopPropagation()}>
+          <h2 className="mb-xxs font-display-md text-display-md text-ink">Card Details</h2>
+          <input
+            className="min-h-[44px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+            placeholder="Task title"
+            value={selected.title || ""}
+            onChange={(e) => selected && setDoc((prev) => {
+              setSelectedDirty(true);
+              return { ...prev, cards: prev.cards.map((c) => c.id === selected.id ? { ...c, title: e.target.value, updatedAt: todayIso() } : c) };
+            })}
+            onBlur={commitSelectedIfDirty}
+          />
+          <textarea
+            className="min-h-[144px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+            placeholder="What needs to happen?"
+            value={selected.description || ""}
+            onChange={(e) => selected && setDoc((prev) => {
+              setSelectedDirty(true);
+              return { ...prev, cards: prev.cards.map((c) => c.id === selected.id ? { ...c, description: e.target.value, updatedAt: todayIso() } : c) };
+            })}
+            onBlur={commitSelectedIfDirty}
+          />
+          <input
+            className="min-h-[44px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+            placeholder="Optional external link (https://...)"
+            value={selected.externalUrl || ""}
+            onChange={(e) => selected && setDoc((prev) => {
+              setSelectedDirty(true);
+              return { ...prev, cards: prev.cards.map((c) => c.id === selected.id ? { ...c, externalUrl: e.target.value, updatedAt: todayIso() } : c) };
+            })}
+            onBlur={commitSelectedIfDirty}
+          />
+          <select
+            className="min-h-[44px] w-full appearance-none rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+            value={selected.columnId || ""}
+            onChange={(e) => moveSelectedToColumn(e.target.value)}
+          >
+            {doc.columns.map((col) => (
+              <option key={col.id} value={col.id}>{col.title}</option>
+            ))}
+          </select>
 
-        <div className="label">Color</div>
-        <div className="swatches">
-          {COLORS.map((color) => (
-            <button
-              key={color}
-              className={`swatch ${color === "none" ? "none" : ""} ${selected?.color === color ? "active" : ""}`}
-              style={color !== "none" ? { background: color === "gold" ? "#f2b81c" : color === "orange" ? "#ff6600" : color === "pink" ? "#f30074" : color === "purple" ? "#7f33d4" : "#3f7fdf" } : {}}
-              onClick={() => {
-                if (!selected) return;
-                setSelectedDirty(true);
-                setDoc((prev) => ({ ...prev, cards: prev.cards.map((c) => c.id === selected.id ? { ...c, color, updatedAt: todayIso() } : c) }));
-              }}
-            >
-              {color === "none" ? "None" : ""}
-            </button>
-          ))}
-        </div>
-        <button className="danger-btn" onMouseDown={(e) => e.preventDefault()} onClick={deleteSelectedCard}>Delete card</button>
-      </section>
+          <div className="mb-xs font-caption text-caption text-ink-muted-80">Color</div>
+          <div className="flex flex-wrap gap-xs">
+            {COLORS.map((color) => (
+              <button
+                key={color}
+                className={swatchClass(color, selected?.color)}
+                onClick={() => {
+                  if (!selected) return;
+                  setSelectedDirty(true);
+                  setDoc((prev) => ({ ...prev, cards: prev.cards.map((c) => c.id === selected.id ? { ...c, color, updatedAt: todayIso() } : c) }));
+                }}
+              >
+                {color === "none" ? "None" : ""}
+              </button>
+            ))}
+          </div>
+          <button className="inline-flex min-h-[44px] w-fit items-center justify-center self-start rounded-sm border border-primary bg-canvas px-md font-button-utility text-button-utility text-primary transition-colors duration-150 ease-out hover:bg-[rgba(204,51,0,0.06)] focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" onMouseDown={(e) => e.preventDefault()} onClick={deleteSelectedCard}>
+            Delete card
+          </button>
+        </section>
       )}
       </DragDropContext>
     </div>
