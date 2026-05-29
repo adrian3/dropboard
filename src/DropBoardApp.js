@@ -23,6 +23,7 @@ const DEFAULT_COLUMNS = [
   { id: "col-done", title: "Done", order: 500 }
 ];
 const DATA_SOURCE_KEY = "dropboard.dataSourcePath";
+const SHOW_STATUS_MESSAGES = false;
 
 function uid(prefix = "c") {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
@@ -124,7 +125,7 @@ function swatchClass(color, activeColor) {
       ? "inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border px-sm font-button-utility text-button-utility transition-colors duration-150 ease-out"
       : "inline-flex h-[44px] w-[44px] items-center justify-center rounded-full border transition-colors duration-150 ease-out",
     SWATCH_TONE_CLASSES[color] || SWATCH_TONE_CLASSES.none,
-    activeColor === color ? "border-primary shadow-[0_0_0_1px_#cc3300]" : ""
+    activeColor === color ? "border-[#333333] shadow-[0_0_0_1px_#333333]" : ""
   ].filter(Boolean).join(" ");
 }
 
@@ -213,7 +214,7 @@ export default function DropBoardApp({
       const res = await api(boardApi("/api/dropboard/data"), { headers: withDataSourceHeader(storedPath) });
       const shaped = ensureShape(res.data || {});
       setDoc(shaped);
-      setSelectedId((prev) => prev && shaped.cards.some((c) => c.id === prev) ? prev : (shaped.cards[0]?.id || null));
+      setSelectedId((prev) => (prev && shaped.cards.some((c) => c.id === prev) ? prev : null));
       setMissingDataSource(null);
       setStatus("Data loaded.");
     } catch (err) {
@@ -407,6 +408,17 @@ export default function DropBoardApp({
     setSelectedId(nextId);
   }
 
+  async function handleCardKeyDown(event, cardId) {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (cardId === selectedId) {
+      selectedDescriptionRef.current?.focus();
+      return;
+    }
+    await handleSelectCard(cardId);
+  }
+
   async function handleDeselectCard() {
     if (!selectedId) return;
     await commitSelectedIfDirty();
@@ -589,7 +601,7 @@ export default function DropBoardApp({
   }
 
   return (
-    <div className="min-h-screen bg-canvas px-lg py-lg pb-xl text-body text-ink md:px-xl">
+    <div className="min-h-screen bg-canvas px-lg py-lg pb-xl text-body text-ink md:px-xl xl:flex xl:h-screen xl:flex-col xl:overflow-hidden">
       <style jsx global>{dropboardStyles}</style>
       <DragDropContext onDragEnd={onGlobalDragEnd}>
       <div className="mb-md grid gap-md border-b border-hairline pb-sm md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
@@ -597,9 +609,11 @@ export default function DropBoardApp({
           {doc.board?.name || "Dashboard"}
         </h1>
         <div className="flex flex-wrap items-center gap-xs md:justify-end">
-          <div className="pr-xxs font-caption text-caption text-ink-muted-48">{status}</div>
+          {SHOW_STATUS_MESSAGES && (
+            <div className="pr-xxs font-caption text-caption text-ink-muted-48">{status}</div>
+          )}
           <button
-            className="inline-flex min-h-[44px] w-[44px] items-center justify-center rounded-sm border border-hairline bg-canvas-parchment text-ink transition-colors duration-150 ease-out hover:border-primary hover:text-primary focus-visible:border-primary focus-visible:text-primary focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+            className="inline-flex min-h-[44px] w-[44px] items-center justify-center rounded-sm border border-hairline bg-canvas-parchment text-ink transition-colors duration-150 ease-out hover:border-[#333333] hover:text-[#333333] focus-visible:border-[#333333] focus-visible:text-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2"
             onClick={() => setShowFilters((v) => !v)}
             title="Filters"
             aria-label="Filters"
@@ -607,7 +621,7 @@ export default function DropBoardApp({
               <DropBoardFilterIcon className="size-4" />
           </button>
           <button
-            className="inline-flex min-h-[44px] w-[44px] items-center justify-center rounded-sm border border-hairline bg-canvas-parchment text-ink transition-colors duration-150 ease-out hover:border-primary hover:text-primary focus-visible:border-primary focus-visible:text-primary focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+            className="inline-flex min-h-[44px] w-[44px] items-center justify-center rounded-sm border border-hairline bg-canvas-parchment text-ink transition-colors duration-150 ease-out hover:border-[#333333] hover:text-[#333333] focus-visible:border-[#333333] focus-visible:text-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2"
             onClick={openSettings}
             title="Settings"
             aria-label="Settings"
@@ -640,7 +654,7 @@ export default function DropBoardApp({
                 <button
                   key={`col-toggle-${col.id}`}
                   className={[
-                    "inline-flex min-h-[44px] items-center gap-xs rounded-sm border px-md font-nav-link text-nav-link uppercase transition-colors duration-150 ease-out hover:border-primary focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
+                    "inline-flex min-h-[44px] items-center gap-xs rounded-sm border px-md font-nav-link text-nav-link uppercase transition-colors duration-150 ease-out hover:border-[#333333] focus-visible:border-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2",
                     visibleColumnIds.includes(col.id)
                       ? "border-hairline bg-canvas text-ink"
                       : "border-hairline bg-canvas-parchment text-ink-muted-48"
@@ -664,8 +678,8 @@ export default function DropBoardApp({
           <div className="mb-xxs text-body text-ink">Current path: <code>{missingDataSource.path}</code></div>
           <div className="text-body text-ink">Open Settings and fix the data source path, or reset to default to use `dropboard.default.json` in this folder.</div>
           <div className="mt-sm flex flex-wrap gap-xs">
-            <button className="inline-flex min-h-[44px] items-center justify-center rounded-sm border border-primary bg-primary px-md font-button-utility text-button-utility text-on-primary transition-colors duration-150 ease-out hover:border-primary-focus hover:bg-primary-focus focus-visible:border-primary-focus focus-visible:bg-primary-focus focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" onClick={openSettings}>Open Settings</button>
-            <button className="inline-flex min-h-[44px] items-center justify-center rounded-sm border border-hairline bg-canvas-parchment px-md font-button-utility text-button-utility text-ink transition-colors duration-150 ease-out hover:border-primary hover:text-primary focus-visible:border-primary focus-visible:text-primary focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" onClick={useDefaultDataSource}>Use Default Path</button>
+            <button className="inline-flex min-h-[44px] items-center justify-center rounded-sm border border-primary bg-primary px-md font-button-utility text-button-utility text-on-primary transition-colors duration-150 ease-out hover:border-[#333333] hover:bg-[#333333] focus-visible:border-[#333333] focus-visible:bg-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2" onClick={openSettings}>Open Settings</button>
+            <button className="inline-flex min-h-[44px] items-center justify-center rounded-sm border border-hairline bg-canvas-parchment px-md font-button-utility text-button-utility text-ink transition-colors duration-150 ease-out hover:border-[#333333] hover:text-[#333333] focus-visible:border-[#333333] focus-visible:text-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2" onClick={useDefaultDataSource}>Use Default Path</button>
           </div>
         </div>
       )}
@@ -675,12 +689,12 @@ export default function DropBoardApp({
           <div className="max-h-[92vh] w-full max-w-[980px] overflow-auto rounded-sm border border-hairline bg-canvas p-lg" onClick={(e) => e.stopPropagation()}>
             <div className="mb-sm flex items-start justify-between gap-sm">
               <h3 className="font-display-md text-display-md text-ink">Add Card</h3>
-              <button className="inline-flex min-h-[44px] items-center justify-center rounded-sm border border-hairline bg-canvas-parchment px-md font-button-utility text-button-utility text-ink transition-colors duration-150 ease-out hover:border-primary hover:text-primary focus-visible:border-primary focus-visible:text-primary focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" onClick={() => setIsAddOpen(false)}>Cancel</button>
+              <button className="inline-flex min-h-[44px] items-center justify-center rounded-sm border border-hairline bg-canvas-parchment px-md font-button-utility text-button-utility text-ink transition-colors duration-150 ease-out hover:border-[#333333] hover:text-[#333333] focus-visible:border-[#333333] focus-visible:text-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2" onClick={() => setIsAddOpen(false)}>Cancel</button>
             </div>
-            <input className="mb-sm min-h-[44px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" placeholder="Task title" value={draftCard.title} onChange={(e) => setDraftCard((prev) => ({ ...prev, title: e.target.value }))} />
-            <textarea className="mb-sm min-h-[144px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" placeholder="What needs to happen?" value={draftCard.description} onChange={(e) => setDraftCard((prev) => ({ ...prev, description: e.target.value }))} />
-            <input className="mb-sm min-h-[44px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" placeholder="Optional external link (https://...)" value={draftCard.externalUrl} onChange={(e) => setDraftCard((prev) => ({ ...prev, externalUrl: e.target.value }))} />
-            <select className="mb-sm min-h-[44px] w-full appearance-none rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" value={draftCard.columnId} onChange={(e) => setDraftCard((prev) => ({ ...prev, columnId: e.target.value }))}>
+            <input className="mb-sm min-h-[44px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:border-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2" placeholder="Task title" value={draftCard.title} onChange={(e) => setDraftCard((prev) => ({ ...prev, title: e.target.value }))} />
+            <textarea className="mb-sm min-h-[144px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:border-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2" placeholder="What needs to happen?" value={draftCard.description} onChange={(e) => setDraftCard((prev) => ({ ...prev, description: e.target.value }))} />
+            <input className="mb-sm min-h-[44px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:border-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2" placeholder="Optional external link (https://...)" value={draftCard.externalUrl} onChange={(e) => setDraftCard((prev) => ({ ...prev, externalUrl: e.target.value }))} />
+            <select className="mb-sm min-h-[44px] w-full appearance-none rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:border-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2" value={draftCard.columnId} onChange={(e) => setDraftCard((prev) => ({ ...prev, columnId: e.target.value }))}>
               {doc.columns.map((col) => <option key={col.id} value={col.id}>{col.title}</option>)}
             </select>
             <div className="mb-xs font-caption text-caption text-ink-muted-80">Color</div>
@@ -695,7 +709,7 @@ export default function DropBoardApp({
                 </button>
               ))}
             </div>
-            <button className="inline-flex min-h-[44px] items-center justify-center rounded-sm border border-primary bg-primary px-md font-button-utility text-button-utility text-on-primary transition-colors duration-150 ease-out hover:border-primary-focus hover:bg-primary-focus focus-visible:border-primary-focus focus-visible:bg-primary-focus focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" onClick={onAddCard}>Save</button>
+            <button className="inline-flex min-h-[44px] items-center justify-center rounded-sm border border-primary bg-primary px-md font-button-utility text-button-utility text-on-primary transition-colors duration-150 ease-out hover:border-[#333333] hover:bg-[#333333] focus-visible:border-[#333333] focus-visible:bg-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2" onClick={onAddCard}>Save</button>
           </div>
         </div>
       )}
@@ -705,25 +719,25 @@ export default function DropBoardApp({
           <div className="max-h-[92vh] w-full max-w-[1020px] overflow-auto rounded-sm border border-hairline bg-canvas p-lg" onClick={(e) => e.stopPropagation()}>
             <div className="mb-sm flex items-start justify-between gap-sm">
               <h3 className="font-display-md text-display-md text-ink">Settings</h3>
-              <button className="inline-flex min-h-[44px] items-center justify-center rounded-sm border border-hairline bg-canvas-parchment px-md font-button-utility text-button-utility text-ink transition-colors duration-150 ease-out hover:border-primary hover:text-primary focus-visible:border-primary focus-visible:text-primary focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" onClick={() => setIsSettingsOpen(false)}>Close</button>
+              <button className="inline-flex min-h-[44px] items-center justify-center rounded-sm border border-hairline bg-canvas-parchment px-md font-button-utility text-button-utility text-ink transition-colors duration-150 ease-out hover:border-[#333333] hover:text-[#333333] focus-visible:border-[#333333] focus-visible:text-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2" onClick={() => setIsSettingsOpen(false)}>Close</button>
             </div>
 
             <div className="mb-xs font-caption text-caption text-ink-muted-80">Dashboard title</div>
             <input
-              className="mb-sm min-h-[44px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+              className="mb-sm min-h-[44px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:border-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2"
               value={settingsDraft.boardName}
               onChange={(e) => setSettingsDraft((prev) => ({ ...prev, boardName: e.target.value }))}
             />
 
             <div className="mb-xs font-caption text-caption text-ink-muted-80">Data source path</div>
             <input
-              className="mb-sm min-h-[44px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+              className="mb-sm min-h-[44px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:border-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2"
               value={settingsDraft.dataSourcePath}
               onChange={(e) => setSettingsDraft((prev) => ({ ...prev, dataSourcePath: e.target.value }))}
             />
             <div className="text-caption text-ink-muted-48">Blank means default local file in app folder. Use absolute path for shared iCloud/OneDrive JSON.</div>
             <div className="mb-xs mt-xs">
-              <button className="inline-flex min-h-[44px] items-center justify-center rounded-sm border border-hairline bg-canvas-parchment px-md font-button-utility text-button-utility text-ink transition-colors duration-150 ease-out hover:border-primary hover:text-primary focus-visible:border-primary focus-visible:text-primary focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" onClick={testDataSourcePath}>Test Path</button>
+              <button className="inline-flex min-h-[44px] items-center justify-center rounded-sm border border-hairline bg-canvas-parchment px-md font-button-utility text-button-utility text-ink transition-colors duration-150 ease-out hover:border-[#333333] hover:text-[#333333] focus-visible:border-[#333333] focus-visible:text-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2" onClick={testDataSourcePath}>Test Path</button>
             </div>
             {pathValidationMsg && <div className={`text-caption ${pathValidationClass(pathValidationKind)}`}>{pathValidationMsg}</div>}
 
@@ -744,21 +758,21 @@ export default function DropBoardApp({
                           {...dragProvided.dragHandleProps}
                         >
                           <span
-                            className="inline-flex min-h-[44px] w-[44px] select-none items-center justify-center rounded-sm border border-hairline bg-canvas text-ink-muted-48 transition-colors duration-150 ease-out hover:border-primary hover:text-primary"
+                            className="inline-flex min-h-[44px] w-[44px] select-none items-center justify-center rounded-sm border border-hairline bg-canvas text-ink-muted-48 transition-colors duration-150 ease-out hover:border-[#333333] hover:text-[#333333]"
                             title="Drag to reorder"
                             aria-label="Drag to reorder"
                           >
                             ⋮⋮
                           </span>
                           <input
-                            className="min-h-[44px] min-w-0 rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+                            className="min-h-[44px] min-w-0 rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:border-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2"
                             value={col.title}
                             onChange={(e) => setSettingsDraft((prev) => ({
                               ...prev,
                               columns: prev.columns.map((c) => c.id === col.id ? { ...c, title: e.target.value } : c)
                             }))}
                           />
-                          <button className="inline-flex min-h-[44px] items-center justify-center rounded-sm border border-hairline bg-canvas-parchment px-md font-button-utility text-button-utility text-ink transition-colors duration-150 ease-out hover:border-primary hover:text-primary focus-visible:border-primary focus-visible:text-primary focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-45" onClick={() => removeSettingColumn(col.id)} disabled={settingsDraft.columns.length <= 1}>Remove</button>
+                          <button className="inline-flex min-h-[44px] items-center justify-center rounded-sm border border-hairline bg-canvas-parchment px-md font-button-utility text-button-utility text-ink transition-colors duration-150 ease-out hover:border-[#333333] hover:text-[#333333] focus-visible:border-[#333333] focus-visible:text-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-45" onClick={() => removeSettingColumn(col.id)} disabled={settingsDraft.columns.length <= 1}>Remove</button>
                         </div>
                       )}
                     </Draggable>
@@ -767,32 +781,35 @@ export default function DropBoardApp({
                 </div>
               )}
             </Droppable>
-            <button className="mt-xs inline-flex min-h-[44px] items-center justify-center rounded-sm border border-hairline bg-canvas-parchment px-md font-button-utility text-button-utility text-ink transition-colors duration-150 ease-out hover:border-primary hover:text-primary focus-visible:border-primary focus-visible:text-primary focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" onClick={addSettingColumn}>+ Add Column</button>
+            <button className="mt-xs inline-flex min-h-[44px] items-center justify-center rounded-sm border border-hairline bg-canvas-parchment px-md font-button-utility text-button-utility text-ink transition-colors duration-150 ease-out hover:border-[#333333] hover:text-[#333333] focus-visible:border-[#333333] focus-visible:text-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2" onClick={addSettingColumn}>+ Add Column</button>
 
             <div className="mt-sm">
-              <button className="inline-flex min-h-[44px] items-center justify-center rounded-sm border border-primary bg-primary px-md font-button-utility text-button-utility text-on-primary transition-colors duration-150 ease-out hover:border-primary-focus hover:bg-primary-focus focus-visible:border-primary-focus focus-visible:bg-primary-focus focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" onClick={saveSettings}>Save Settings</button>
+              <button className="inline-flex min-h-[44px] items-center justify-center rounded-sm border border-primary bg-primary px-md font-button-utility text-button-utility text-on-primary transition-colors duration-150 ease-out hover:border-[#333333] hover:bg-[#333333] focus-visible:border-[#333333] focus-visible:bg-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2" onClick={saveSettings}>Save Settings</button>
             </div>
             {allowDeleteBoard ? (
               <div className="mt-sm flex flex-wrap items-start justify-between gap-sm border-t border-divider-soft pt-sm">
                 <div className="text-caption text-primary">
                   Danger zone: deleting this board removes it from the app{boardMode === "linked" ? " but keeps the linked JSON file." : " and deletes its local board file."}
                 </div>
-                <button className="inline-flex min-h-[44px] w-fit items-center justify-center self-start rounded-sm border border-primary bg-canvas px-md font-button-utility text-button-utility text-primary transition-colors duration-150 ease-out hover:bg-[rgba(204,51,0,0.06)] focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" onClick={deleteBoard}>Delete Board</button>
+                <button className="inline-flex min-h-[44px] w-fit items-center justify-center self-start rounded-sm border border-primary bg-canvas px-md font-button-utility text-button-utility text-primary transition-colors duration-150 ease-out hover:border-[#333333] hover:bg-[rgba(51,51,51,0.06)] focus-visible:border-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2" onClick={deleteBoard}>Delete Board</button>
               </div>
             ) : null}
           </div>
         </div>
       )}
 
-      <div className={selected ? "grid gap-sm xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start" : ""}>
-        <div className="overflow-x-auto pt-xxs pb-sm" onClick={handleDeselectCard}>
+      <div className={[
+        selected ? "grid gap-sm xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start" : "",
+        "xl:min-h-0 xl:grow"
+      ].filter(Boolean).join(" ")}>
+        <div className="overflow-x-auto pt-xxs pb-sm xl:h-full" onClick={handleDeselectCard}>
           <div className="grid min-w-full w-max grid-flow-col auto-cols-[290px] content-start gap-sm xl:auto-cols-[240px]">
             {shownColumns.map((col) => {
               const cards = filteredCardsByColumn[col.id] || [];
               return (
                 <Droppable droppableId={col.id} key={col.id} type="CARD">
                   {(provided) => (
-                    <section className="flex h-[500px] min-w-[290px] max-w-full flex-col overflow-hidden rounded-sm border border-hairline bg-canvas-parchment px-sm pt-sm pb-0 xl:min-w-[240px]" ref={provided.innerRef} {...provided.droppableProps}>
+                    <section className="flex h-[500px] min-w-[290px] max-w-full flex-col overflow-hidden rounded-sm border border-hairline bg-canvas-parchment px-sm pt-sm pb-0 xl:h-full xl:min-w-[240px]" ref={provided.innerRef} {...provided.droppableProps}>
                       <div className="flex items-baseline justify-between gap-sm font-caption text-caption text-ink-muted-80">
                         <span>{col.title}</span>
                         <span>{cards.length}</span>
@@ -823,7 +840,12 @@ export default function DropBoardApp({
                                   ref={dragProvided.innerRef}
                                   {...dragProvided.draggableProps}
                                   {...dragProvided.dragHandleProps}
+                                  tabIndex={0}
+                                  role="button"
+                                  aria-pressed={selectedId === card.id}
+                                  aria-label={`Open card ${card.title || "Untitled"}`}
                                   onClick={async (e) => { e.stopPropagation(); await handleSelectCard(card.id); }}
+                                  onKeyDown={async (e) => { await handleCardKeyDown(e, card.id); }}
                                 >
                                   <h3 className={`font-body text-body leading-tight text-ink ${titleSpacing}`}>{card.title || "Untitled"}</h3>
                                   {hasDescription && (
@@ -863,7 +885,7 @@ export default function DropBoardApp({
           <section className="mt-sm grid gap-sm rounded-sm border border-hairline bg-canvas-parchment p-md xl:mt-0 xl:w-[360px]" onClick={(e) => e.stopPropagation()}>
             <h2 className="mb-xxs font-body text-body leading-tight text-ink">{selected.title || "Untitled"}</h2>
             <input
-              className="min-h-[44px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+              className="min-h-[44px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:border-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2"
               placeholder="Task title"
               value={selected.title || ""}
               onChange={(e) => selected && setDoc((prev) => {
@@ -874,7 +896,7 @@ export default function DropBoardApp({
             />
             <textarea
               ref={selectedDescriptionRef}
-              className="min-h-[144px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+              className="min-h-[144px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:border-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2"
               placeholder="What needs to happen?"
               value={selected.description || ""}
               onChange={(e) => selected && setDoc((prev) => {
@@ -884,7 +906,7 @@ export default function DropBoardApp({
               onBlur={commitSelectedIfDirty}
             />
             <input
-              className="min-h-[44px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+              className="min-h-[44px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:border-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2"
               placeholder="Optional external link (https://...)"
               value={selected.externalUrl || ""}
               onChange={(e) => selected && setDoc((prev) => {
@@ -894,7 +916,7 @@ export default function DropBoardApp({
               onBlur={commitSelectedIfDirty}
             />
             <select
-              className="min-h-[44px] w-full appearance-none rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+              className="min-h-[44px] w-full appearance-none rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:border-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2"
               value={selected.columnId || ""}
               onChange={(e) => moveSelectedToColumn(e.target.value)}
             >
@@ -919,7 +941,7 @@ export default function DropBoardApp({
                 </button>
               ))}
             </div>
-            <button className="inline-flex min-h-[44px] w-fit items-center justify-center self-start rounded-sm border border-primary bg-canvas px-md font-button-utility text-button-utility text-primary transition-colors duration-150 ease-out hover:bg-[rgba(204,51,0,0.06)] focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" onMouseDown={(e) => e.preventDefault()} onClick={deleteSelectedCard}>
+            <button className="inline-flex min-h-[44px] w-fit items-center justify-center self-start rounded-sm border border-primary bg-canvas px-md font-button-utility text-button-utility text-primary transition-colors duration-150 ease-out hover:border-[#333333] hover:bg-[rgba(51,51,51,0.06)] focus-visible:border-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2" onMouseDown={(e) => e.preventDefault()} onClick={deleteSelectedCard}>
               Delete card
             </button>
           </section>
