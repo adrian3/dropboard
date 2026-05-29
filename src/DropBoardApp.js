@@ -2,9 +2,14 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
-import { Cog6ToothIcon, EyeIcon, EyeSlashIcon, FunnelIcon } from "@heroicons/react/24/outline";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
+import {
+  DropBoardFilterIcon,
+  DropBoardHideIcon,
+  DropBoardSettingsIcon,
+  DropBoardShowIcon
+} from "./icons";
 import { CARD_TONE_CLASSES, SWATCH_TONE_CLASSES } from "./dropboardTailwind";
 import { dropboardStyles } from "./dropboardStyles";
 
@@ -121,7 +126,7 @@ export default function DropBoardApp({
   const [status, setStatus] = useState("Loading...");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(true);
   const [missingDataSource, setMissingDataSource] = useState(null);
   const [configPath, setConfigPath] = useState("");
   const [pathValidationMsg, setPathValidationMsg] = useState("");
@@ -558,7 +563,7 @@ export default function DropBoardApp({
             title="Filters"
             aria-label="Filters"
           >
-            <FunnelIcon className="size-4" />
+              <DropBoardFilterIcon className="size-4" />
           </button>
           <button
             className="inline-flex min-h-[44px] w-[44px] items-center justify-center rounded-sm border border-hairline bg-canvas-parchment text-ink transition-colors duration-150 ease-out hover:border-primary hover:text-primary focus-visible:border-primary focus-visible:text-primary focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
@@ -566,7 +571,7 @@ export default function DropBoardApp({
             title="Settings"
             aria-label="Settings"
           >
-            <Cog6ToothIcon className="size-4" />
+              <DropBoardSettingsIcon className="size-4" />
           </button>
         </div>
       </div>
@@ -601,7 +606,9 @@ export default function DropBoardApp({
                   ].join(" ")}
                   onClick={() => toggleColumnVisibility(col.id)}
                 >
-                  {visibleColumnIds.includes(col.id) ? <EyeIcon className="size-3 shrink-0" /> : <EyeSlashIcon className="size-3 shrink-0" />}
+                  {visibleColumnIds.includes(col.id)
+                    ? <DropBoardShowIcon className="size-3 shrink-0" />
+                    : <DropBoardHideIcon className="size-3 shrink-0" />}
                   {col.title}
                 </button>
               ))}
