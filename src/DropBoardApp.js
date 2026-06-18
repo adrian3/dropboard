@@ -182,10 +182,18 @@ export default function DropBoardApp({
   });
 
   function getStoredDataSourcePath() {
+    const serverPath = initialDataSourcePath || "";
     try {
-      return localStorage.getItem(`${DATA_SOURCE_KEY}.${boardId}`) || initialDataSourcePath || "";
+      const storedPath = localStorage.getItem(`${DATA_SOURCE_KEY}.${boardId}`) || "";
+      if (serverPath) {
+        if (storedPath !== serverPath) {
+          localStorage.setItem(`${DATA_SOURCE_KEY}.${boardId}`, serverPath);
+        }
+        return serverPath;
+      }
+      return storedPath || "";
     } catch {
-      return initialDataSourcePath || "";
+      return serverPath || "";
     }
   }
 
@@ -207,16 +215,25 @@ export default function DropBoardApp({
     return `${path}?${query.toString()}`;
   }
 
-  async function loadBoard() {
+  const lastLoadedBoardUpdatedAtRef = useRef("");
+
+  function applyLoadedBoard(shaped, { silent = false } = {}) {
+    setDoc(shaped);
+    lastLoadedBoardUpdatedAtRef.current = shaped.board?.updatedAt || "";
+    setSelectedId((prev) => (prev && shaped.cards.some((c) => c.id === prev) ? prev : null));
+    setMissingDataSource(null);
+    if (!silent) {
+      setStatus("Data loaded.");
+    }
+  }
+
+  async function loadBoard({ silent = false } = {}) {
     const storedPath = getStoredDataSourcePath();
     setConfigPath(storedPath);
     try {
       const res = await api(boardApi("/api/dropboard/data"), { headers: withDataSourceHeader(storedPath) });
       const shaped = ensureShape(res.data || {});
-      setDoc(shaped);
-      setSelectedId((prev) => (prev && shaped.cards.some((c) => c.id === prev) ? prev : null));
-      setMissingDataSource(null);
-      setStatus("Data loaded.");
+      applyLoadedBoard(shaped, { silent });
     } catch (err) {
       if (err.status === 404) {
         setMissingDataSource({ path: err.payload?.path || storedPath || "(default location)" });
@@ -226,6 +243,11 @@ export default function DropBoardApp({
       }
     }
   }
+
+  const selected = useMemo(() => doc.cards.find((c) => c.id === selectedId) || null, [doc.cards, selectedId]);
+  const [selectedDirty, setSelectedDirty] = useState(false);
+  const suppressAutoSaveRef = useRef(false);
+  const selectedDescriptionRef = useRef(null);
 
   useEffect(() => {
     (async () => {
@@ -238,6 +260,37 @@ export default function DropBoardApp({
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+
+    async function pollForUpdates() {
+      if (selectedDirty || isAddOpen || isSettingsOpen) return;
+
+      try {
+        const storedPath = getStoredDataSourcePath();
+        const res = await api(boardApi("/api/dropboard/data"), { headers: withDataSourceHeader(storedPath) });
+        if (cancelled) return;
+
+        const incoming = ensureShape(res.data || {});
+        const nextUpdatedAt = incoming.board?.updatedAt || "";
+        const currentUpdatedAt = lastLoadedBoardUpdatedAtRef.current || doc.board?.updatedAt || "";
+
+        if (nextUpdatedAt && nextUpdatedAt !== currentUpdatedAt) {
+          applyLoadedBoard(incoming, { silent: true });
+          setStatus("Board updated on another device.");
+        }
+      } catch {
+        // Ignore polling failures; the existing load/save status will surface real problems.
+      }
+    }
+
+    const timer = window.setInterval(pollForUpdates, 3000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [selectedDirty, isAddOpen, isSettingsOpen, boardId, doc.board?.updatedAt]);
+
+  useEffect(() => {
     function onKeyDown(event) {
       if (event.key === "Escape") {
         setIsAddOpen(false);
@@ -247,11 +300,6 @@ export default function DropBoardApp({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
-
-  const selected = useMemo(() => doc.cards.find((c) => c.id === selectedId) || null, [doc.cards, selectedId]);
-  const [selectedDirty, setSelectedDirty] = useState(false);
-  const suppressAutoSaveRef = useRef(false);
-  const selectedDescriptionRef = useRef(null);
 
   useEffect(() => {
     setVisibleColumnIds(doc.columns.map((c) => c.id));
@@ -305,6 +353,7 @@ export default function DropBoardApp({
   async function persist(nextDoc, okMsg = "Card saved.") {
     const out = { ...nextDoc, board: { ...nextDoc.board, updatedAt: todayIso() } };
     setDoc(out);
+    lastLoadedBoardUpdatedAtRef.current = out.board?.updatedAt || "";
     try {
       await api(boardApi("/api/dropboard/data"), { method: "POST", body: { data: out }, headers: withDataSourceHeader() });
       setMissingDataSource(null);
