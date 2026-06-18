@@ -197,7 +197,7 @@
     <a href="../index.html" class="nav-link">Ade's Apps</a>
     <span class="nav-sep">/</span>
     <span class="nav-current">DropBoard</span>
-    <a href="http://localhost:8787" class="nav-launch">Open app</a>
+    <a href="http://127.0.0.1:8787/DropBoard.html" class="nav-launch">Open app</a>
   </nav>
 
   <header class="hero">
@@ -218,9 +218,9 @@
       </div>
       <script>
         (function() {
-          var statusUrl = "/api/status?url=http://localhost:8787";
+          var statusUrl = "/api/status?url=http://127.0.0.1:8787/DropBoard.html";
           var appId = "dropboard";
-          var serverUrl = "http://localhost:8787";
+          var serverUrl = "http://127.0.0.1:8787/DropBoard.html";
           var hasLaunch = true;
           var dot = document.getElementById('server-dot');
           var val = document.getElementById('server-status-value');
