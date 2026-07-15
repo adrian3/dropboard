@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
@@ -169,6 +170,11 @@ function layoutZoomStyle(layoutSize) {
   return {
     zoom: scale
   };
+}
+
+function dragPortal(isDragging, element) {
+  if (!isDragging || typeof document === "undefined") return element;
+  return createPortal(element, document.body);
 }
 
 export default function DropBoardApp({
@@ -859,7 +865,8 @@ export default function DropBoardApp({
                 <div className="mt-xs grid gap-xs" ref={provided.innerRef} {...provided.droppableProps}>
                   {settingsDraft.columns.map((col, idx) => (
                     <Draggable key={col.id} draggableId={`settings-${col.id}`} index={idx}>
-                      {(dragProvided) => (
+                      {(dragProvided, dragSnapshot) => dragPortal(
+                        dragSnapshot.isDragging,
                         <div
                           className="grid min-w-0 grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-xs rounded-sm border border-hairline bg-canvas-parchment p-[10px]"
                           ref={dragProvided.innerRef}
@@ -931,13 +938,14 @@ export default function DropBoardApp({
                       <div className="min-h-0 min-w-0 grow overflow-y-auto">
                         {cards.map((card, index) => (
                           <Draggable draggableId={card.id} index={index} key={card.id}>
-                            {(dragProvided) => {
+                            {(dragProvided, dragSnapshot) => {
                               const hasDescription = Boolean(String(card.description || "").trim());
                               const hasExternalUrl = Boolean(asSafeExternalUrl(card.externalUrl));
                               const titleSpacing = hasDescription || hasExternalUrl ? "mb-[4px]" : "";
                               const cardSpacing = index === cards.length - 1 ? "" : "mb-sm";
 
-                              return (
+                              return dragPortal(
+                                dragSnapshot.isDragging,
                                 <article
                                   className={[
                                     cardSpacing,
