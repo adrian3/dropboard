@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
@@ -14,6 +14,12 @@ import { CARD_ACCENT_CLASSES, CARD_TONE_CLASSES, SWATCH_TONE_CLASSES } from "./d
 import { dropboardStyles } from "./dropboardStyles";
 
 const COLORS = ["none", "gold", "orange", "pink", "purple", "blue"];
+const LAYOUT_SIZE_OPTIONS = [
+  { value: "normal", label: "Normal", scale: 1 },
+  { value: "compact", label: "Compact", scale: 0.8 },
+  { value: "tight", label: "Tight", scale: 0.6 }
+];
+const LAYOUT_SIZE_SCALE = Object.fromEntries(LAYOUT_SIZE_OPTIONS.map((option) => [option.value, option.scale]));
 
 const DEFAULT_COLUMNS = [
   { id: "col-inbox", title: "Inbox", order: 100 },
@@ -144,6 +150,27 @@ function pathValidationClass(kind) {
   return "text-ink-muted-48";
 }
 
+function normalizeLayoutSize(value) {
+  return LAYOUT_SIZE_SCALE[value] ? value : "normal";
+}
+
+function layoutZoomStyle(layoutSize) {
+  const scale = LAYOUT_SIZE_SCALE[normalizeLayoutSize(layoutSize)] || 1;
+  const supportsZoom =
+    typeof CSS === "undefined" ||
+    typeof CSS.supports !== "function" ||
+    CSS.supports("zoom", "1");
+  if (!supportsZoom) {
+    return {
+      transform: `scale(${scale})`,
+      transformOrigin: "top left"
+    };
+  }
+  return {
+    zoom: scale
+  };
+}
+
 export default function DropBoardApp({
   boardId = "work",
   boardMode = "local",
@@ -179,6 +206,7 @@ export default function DropBoardApp({
   const [settingsDraft, setSettingsDraft] = useState({
     boardName: "Dashboard",
     dataSourcePath: "",
+    layoutSize: "normal",
     columns: DEFAULT_COLUMNS.map((c) => ({ ...c }))
   });
 
@@ -250,8 +278,13 @@ export default function DropBoardApp({
   }, []);
 
   const selected = useMemo(() => doc.cards.find((c) => c.id === selectedId) || null, [doc.cards, selectedId]);
+  const layoutSize = normalizeLayoutSize(doc.settings?.layoutSize);
+  const effectiveLayoutSize = isSettingsOpen ? normalizeLayoutSize(settingsDraft.layoutSize) : layoutSize;
+  const effectiveLayoutScale = LAYOUT_SIZE_SCALE[effectiveLayoutSize] || 1;
+  const [boardHeight, setBoardHeight] = useState("500px");
   const [selectedDirty, setSelectedDirty] = useState(false);
   const suppressAutoSaveRef = useRef(false);
+  const boardViewportRef = useRef(null);
   const selectedDescriptionRef = useRef(null);
   const addTitleInputRef = useRef(null);
 
@@ -274,6 +307,25 @@ export default function DropBoardApp({
     });
     return () => window.cancelAnimationFrame(frame);
   }, [isAddOpen]);
+
+  useLayoutEffect(() => {
+    function measureBoardHeight() {
+      const el = boardViewportRef.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top;
+      const visibleHeight = window.innerHeight - top - 12;
+      const unscaledHeight = visibleHeight / effectiveLayoutScale;
+      setBoardHeight(`${Math.max(280, Math.floor(unscaledHeight))}px`);
+    }
+
+    measureBoardHeight();
+    const frame = window.requestAnimationFrame(measureBoardHeight);
+    window.addEventListener("resize", measureBoardHeight);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("resize", measureBoardHeight);
+    };
+  }, [effectiveLayoutScale, selectedId, showFilters, missingDataSource]);
 
   const cardsByColumn = useMemo(() => {
     const map = Object.fromEntries(doc.columns.map((col) => [col.id, []]));
@@ -336,6 +388,7 @@ export default function DropBoardApp({
     setSettingsDraft({
       boardName: doc.board?.name || "Dashboard",
       dataSourcePath: configPath || "",
+      layoutSize,
       columns: doc.columns.map((c) => ({ ...c }))
     });
     setIsSettingsOpen(true);
@@ -514,6 +567,7 @@ export default function DropBoardApp({
 
   async function saveSettings() {
     const cleanTitle = settingsDraft.boardName.trim() || "Dashboard";
+    const cleanLayoutSize = normalizeLayoutSize(settingsDraft.layoutSize);
     const cleanPath = normalizeDataSourcePath(settingsDraft.dataSourcePath || configPath || initialDataSourcePath);
     const pathChanged = cleanPath !== (configPath || "");
     const cleanColumns = settingsDraft.columns
@@ -555,6 +609,7 @@ export default function DropBoardApp({
     const nextDoc = {
       ...doc,
       board: { ...doc.board, name: cleanTitle, updatedAt: todayIso() },
+      settings: { ...(doc.settings || {}), layoutSize: cleanLayoutSize },
       columns: cleanColumns,
       cards: rehomedCards
     };
@@ -623,9 +678,15 @@ export default function DropBoardApp({
   }
 
   return (
-    <div className="min-h-screen bg-canvas px-lg py-lg pb-xl text-body text-ink md:px-xl xl:flex xl:h-screen xl:flex-col xl:overflow-hidden">
+    <div className="dropboard-host" data-dropboard-host>
       <style jsx global>{dropboardStyles}</style>
-      <DragDropContext onDragEnd={onGlobalDragEnd}>
+      <div
+        className="min-h-screen bg-canvas px-lg py-lg pb-xl text-body text-ink md:px-xl xl:flex xl:h-screen xl:flex-col xl:overflow-hidden"
+        data-dropboard-surface
+        data-layout-size={effectiveLayoutSize}
+        style={{ ...layoutZoomStyle(effectiveLayoutSize), "--dropboard-board-height": boardHeight }}
+      >
+        <DragDropContext onDragEnd={onGlobalDragEnd}>
       <div className="mb-md grid gap-md border-b border-hairline pb-sm md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
         <h1 className="max-w-[13ch] font-display-lg text-display-lg leading-[1.05] tracking-[-0.02em] text-ink">
           {doc.board?.name || "Dashboard"}
@@ -754,6 +815,29 @@ export default function DropBoardApp({
               onChange={(e) => setSettingsDraft((prev) => ({ ...prev, boardName: e.target.value }))}
             />
 
+            <div className="mb-xs font-caption text-caption text-ink-muted-80">Size</div>
+            <div className="mb-sm flex flex-wrap gap-xs">
+              {LAYOUT_SIZE_OPTIONS.map((option) => {
+                const isActive = normalizeLayoutSize(settingsDraft.layoutSize) === option.value;
+                return (
+                  <button
+                    type="button"
+                    key={option.value}
+                    className={[
+                      "inline-flex min-h-[44px] items-center justify-center rounded-sm border px-md font-button-utility text-button-utility transition-colors duration-150 ease-out hover:border-[#333333] focus-visible:border-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2",
+                      isActive
+                        ? "border-primary bg-primary text-on-primary"
+                        : "border-hairline bg-canvas-parchment text-ink"
+                    ].join(" ")}
+                    aria-pressed={isActive}
+                    onClick={() => setSettingsDraft((prev) => ({ ...prev, layoutSize: option.value }))}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+
             <div className="mb-xs font-caption text-caption text-ink-muted-80">Data source path</div>
             <input
               className="mb-sm min-h-[44px] w-full rounded-sm border border-hairline bg-canvas px-md py-xs text-body text-ink focus-visible:border-[#333333] focus-visible:outline-2 focus-visible:outline-[#333333] focus-visible:outline-offset-2"
@@ -827,14 +911,14 @@ export default function DropBoardApp({
         selected ? "grid gap-sm xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start" : "",
         "xl:min-h-0 xl:grow"
       ].filter(Boolean).join(" ")}>
-        <div className="overflow-x-auto pt-xxs pb-sm xl:h-full" onClick={handleDeselectCard}>
-          <div className="grid min-w-full w-max grid-flow-col auto-cols-[290px] content-start gap-sm xl:auto-cols-[240px]">
+        <div ref={boardViewportRef} className="h-[var(--dropboard-board-height)] overflow-x-auto overflow-y-hidden pt-xxs pb-sm" onClick={handleDeselectCard}>
+          <div className="grid h-full min-w-full w-max grid-flow-col auto-cols-[290px] content-start gap-sm xl:auto-cols-[240px]">
             {shownColumns.map((col) => {
               const cards = filteredCardsByColumn[col.id] || [];
               return (
                 <Droppable droppableId={col.id} key={col.id} type="CARD">
                   {(provided) => (
-                    <section className="flex h-[500px] min-w-[290px] max-w-full flex-col overflow-hidden rounded-sm border border-hairline bg-canvas-parchment px-sm pt-sm pb-0 xl:h-full xl:min-w-[240px]" ref={provided.innerRef} {...provided.droppableProps}>
+                    <section className="flex h-full min-w-[290px] max-w-full flex-col overflow-hidden rounded-sm border border-hairline bg-canvas-parchment px-sm pt-sm pb-0 xl:min-w-[240px]" ref={provided.innerRef} {...provided.droppableProps}>
                       <div className="flex items-baseline justify-between gap-sm font-caption text-caption text-ink-muted-80">
                         <span>{col.title}</span>
                         <span>{cards.length}</span>
@@ -972,7 +1056,8 @@ export default function DropBoardApp({
           </section>
         )}
       </div>
-      </DragDropContext>
+        </DragDropContext>
+      </div>
     </div>
   );
 }
