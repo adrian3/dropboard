@@ -4,6 +4,7 @@ set -euo pipefail
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 PID_FILE="$APP_DIR/.dropboard-server.pid"
 LOG_FILE="$APP_DIR/.dropboard-server.log"
+PORT_FILE="$APP_DIR/.dropboard-server.port"
 PORT_MIN=8787
 PORT_MAX=8799
 
@@ -20,22 +21,6 @@ cleanup_stale_pid() {
     fi
     rm -f "$PID_FILE"
   fi
-}
-
-kill_port_conflicts() {
-  for port in $(seq "$PORT_MIN" "$PORT_MAX"); do
-    local pids
-    pids="$(lsof -nP -tiTCP:"$port" -sTCP:LISTEN 2>/dev/null || true)"
-    if [[ -n "${pids:-}" ]]; then
-      for pid in $pids; do
-        if ps -p "$pid" -o command= | grep -q "dropboard_server.py"; then
-          kill "$pid" 2>/dev/null || true
-          sleep 0.3
-          kill -9 "$pid" 2>/dev/null || true
-        fi
-      done
-    fi
-  done
 }
 
 pick_port() {
@@ -57,7 +42,6 @@ main() {
   fi
 
   cleanup_stale_pid
-  kill_port_conflicts
 
   local port
   if ! port="$(pick_port)"; then
@@ -66,6 +50,7 @@ main() {
   fi
 
   : > "$LOG_FILE"
+  echo "$port" > "$PORT_FILE"
   nohup python3 "$APP_DIR/dropboard_server.py" --port "$port" --dir "$APP_DIR" >> "$LOG_FILE" 2>&1 &
   local server_pid=$!
   echo "$server_pid" > "$PID_FILE"
